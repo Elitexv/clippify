@@ -59,8 +59,8 @@ export default function DashboardHome() {
         {showBrand && (
           <PromoBanner
             icon={Briefcase}
-            title="Hire a Video Editor"
-            text="Post a job and get custom clips made by pro editors."
+            title="Hire a Streamer"
+            text="Post a job and get custom clips made by pro streamers."
             cta="Post a Job"
             href="/dashboard/post-job"
           />
@@ -125,7 +125,9 @@ export default function DashboardHome() {
 
       <SectionHeader title="Active Competitions" href="/dashboard/competitions" />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {competitions.map((comp) => (
+        {competitions
+          .filter((comp) => comp.status === "Active")
+          .map((comp) => (
           <div
             key={comp.id}
             className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm shadow-slate-100 dark:border-white/10 dark:bg-[#111] dark:shadow-none"

@@ -30,7 +30,7 @@ export type NavItem = {
 export const accountNavItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Browse Clips", href: "/dashboard/browse", icon: Search },
-  { label: "Hire Editors", href: "/dashboard/hire", icon: Users, roles: ["brand"] },
+  { label: "Hire Streamers", href: "/dashboard/hire", icon: Users, roles: ["brand"] },
   { label: "Competitions", href: "/dashboard/competitions", icon: Trophy },
   { label: "My Orders", href: "/dashboard/orders", icon: ShoppingBag, roles: ["brand"] },
   { label: "Earnings", href: "/dashboard/earnings", icon: DollarSign, roles: ["creator"] },

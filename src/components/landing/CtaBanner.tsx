@@ -10,7 +10,7 @@ export default function CtaBanner() {
           </span>
           <div>
             <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">
-              Ready to find the perfect clip or hire a top editor?
+              Ready to find the perfect clip or hire a top streamer?
             </h3>
             <p className="mt-1 text-sm text-slate-500">
               Join thousands of creators and brands growing their content with Clippifi.

@@ -33,7 +33,18 @@ export const featuredClips = [
   },
 ] as const;
 
-export const competitions = [
+export type Competition = {
+  id: string;
+  title: string;
+  host: string;
+  prize: string;
+  entries: number;
+  endsIn: string;
+  status: "Active" | "Ended";
+  payout?: string;
+};
+
+export const competitions: Competition[] = [
   {
     id: "comp1",
     title: "Summer Drop Clipping Challenge",
@@ -41,6 +52,7 @@ export const competitions = [
     prize: "$5,000",
     entries: 214,
     endsIn: "4 days",
+    status: "Active",
   },
   {
     id: "comp2",
@@ -49,6 +61,7 @@ export const competitions = [
     prize: "$2,500",
     entries: 132,
     endsIn: "9 days",
+    status: "Active",
   },
   {
     id: "comp3",
@@ -57,8 +70,19 @@ export const competitions = [
     prize: "$1,200",
     entries: 76,
     endsIn: "12 days",
+    status: "Active",
   },
-] as const;
+  {
+    id: "comp5",
+    title: "Holiday Highlight Reel 2025",
+    host: "Nova Sportswear",
+    prize: "$4,000",
+    entries: 341,
+    endsIn: "Ended",
+    status: "Ended",
+    payout: "$150",
+  },
+];
 
 export const trendingCreators = [
   { id: "u1", name: "EditWizard", badge: "Top Rated", clips: "1.2K", color: "bg-amber-500 text-black" },

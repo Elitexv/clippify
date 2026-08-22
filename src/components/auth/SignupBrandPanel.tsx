@@ -17,7 +17,7 @@ export default function SignupBrandPanel() {
         today
       </h2>
       <p className="mt-3 max-w-sm text-sm text-black/70 dark:text-slate-400">
-        Hire editors, host clipping competitions, or sell your clips to
+        Hire streamers, host clipping competitions, or sell your clips to
         brands worldwide.
       </p>
 
@@ -38,7 +38,7 @@ export default function SignupBrandPanel() {
       <div className="mt-10 hidden max-w-sm rounded-2xl bg-black/10 p-5 backdrop-blur dark:bg-white/5 xl:block">
         <Quote className="h-6 w-6 text-black/40 dark:text-yellow-400/60" />
         <p className="mt-2 text-sm font-medium text-black dark:text-white">
-          &ldquo;Clippifi helped me find amazing clips and editors that save
+          &ldquo;Clippifi helped me find amazing clips and streamers that save
           me hours of work!&rdquo;
         </p>
         <div className="mt-3 flex items-center gap-2">

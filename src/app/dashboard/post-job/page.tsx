@@ -6,7 +6,7 @@ export default function PostJobPage() {
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Post a Job</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Describe what you need and get proposals from editors.
+        Describe what you need and get proposals from streamers.
       </p>
       <div className="mt-6">
         <ComingSoon

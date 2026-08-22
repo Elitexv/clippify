@@ -13,7 +13,7 @@ const roles = [
     id: "brand",
     label: "Brand",
     icon: Briefcase,
-    text: "I want to hire editors or run a clipping competition",
+    text: "I want to hire streamers or run a clipping competition",
   },
   {
     id: "creator",

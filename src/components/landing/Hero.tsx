@@ -25,14 +25,14 @@ export default function Hero() {
             </span>{" "}
             and top{" "}
             <span className="bg-gradient-to-r from-yellow-500 to-amber-600 bg-clip-text text-transparent dark:from-yellow-300 dark:to-amber-400">
-              editors
+              streamers
             </span>
           </h1>
           <p
             className="animate-fade-in-up mt-5 text-base text-slate-500 dark:text-slate-400 sm:text-lg"
             style={{ animationDelay: "120ms" }}
           >
-            Buy ready-to-use clips or hire talented editors to create
+            Buy ready-to-use clips or hire talented streamers to create
             scroll-stopping content.
           </p>
 
@@ -53,7 +53,7 @@ export default function Hero() {
               href="#creators"
               className="rounded-lg border border-slate-200 px-6 py-3 text-center text-sm font-medium text-slate-900 transition-transform duration-200 hover:scale-[1.03] hover:bg-slate-100 active:scale-95 dark:border-white/15 dark:text-white dark:hover:bg-white/5"
             >
-              Hire an Editor
+              Hire a Streamer
             </a>
           </div>
 

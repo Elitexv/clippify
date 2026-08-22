@@ -11,7 +11,7 @@ const audiences = [
     icon: Star,
     iconBg: "bg-amber-100 text-amber-600",
     title: "Brands & Marketers",
-    text: "Access premium clips or hire editors for your campaigns.",
+    text: "Access premium clips or hire streamers for your campaigns.",
   },
   {
     icon: Briefcase,
@@ -22,7 +22,7 @@ const audiences = [
   {
     icon: Sparkle,
     iconBg: "bg-emerald-100 text-emerald-600",
-    title: "Editors & Clippers",
+    title: "Streamers & Clippers",
     text: "Monetize your skills and build your creator brand.",
   },
 ];
