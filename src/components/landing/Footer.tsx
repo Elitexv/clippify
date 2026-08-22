@@ -1,4 +1,5 @@
-import { Globe, Play } from "lucide-react";
+import { Globe } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const columns = [
   {
@@ -21,17 +22,15 @@ const columns = [
 
 export default function Footer() {
   return (
-    <footer className="bg-[#0a0a0a] pt-16 text-slate-400">
+    <footer className="bg-slate-50 pt-16 text-slate-500 dark:bg-[#0a0a0a] dark:text-slate-400">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1fr]">
           <div>
             <a href="#" className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500">
-                <Play className="h-4 w-4 fill-black text-black" />
-              </span>
-              <span className="text-lg font-semibold text-white">Clippifi</span>
+              <Logo className="h-8 w-8" />
+              <span className="text-lg font-semibold text-slate-900 dark:text-white">Clippifi</span>
             </a>
-            <p className="mt-4 max-w-xs text-sm text-slate-500">
+            <p className="mt-4 max-w-xs text-sm text-slate-500 dark:text-slate-500">
               The marketplace for premium video clips and top video editors.
             </p>
             <div className="mt-5 flex items-center gap-3">
@@ -39,7 +38,7 @@ export default function Footer() {
                 <a
                   key={i}
                   href="#"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-all duration-200 hover:-translate-y-0.5 hover:border-yellow-400/40 hover:text-yellow-400"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-400/40 hover:text-amber-600 dark:border-white/10 dark:text-slate-400 dark:hover:border-yellow-400/40 dark:hover:text-yellow-400"
                 >
                   <Icon className="h-4 w-4" />
                 </a>
@@ -49,13 +48,13 @@ export default function Footer() {
 
           {columns.map((col) => (
             <div key={col.title}>
-              <h4 className="text-sm font-semibold text-white">{col.title}</h4>
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{col.title}</h4>
               <ul className="mt-4 space-y-3">
                 {col.links.map((link) => (
                   <li key={link}>
                     <a
                       href="#"
-                      className="text-sm text-slate-500 transition-colors duration-200 hover:text-white"
+                      className="text-sm text-slate-500 transition-colors duration-200 hover:text-slate-900 dark:hover:text-white"
                     >
                       {link}
                     </a>
@@ -66,9 +65,9 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center gap-4 border-t border-white/10 py-6 sm:flex-row sm:justify-between">
+        <div className="mt-12 flex flex-col items-center gap-4 border-t border-slate-200 py-6 dark:border-white/10 sm:flex-row sm:justify-between">
           <p className="text-xs text-slate-500">© 2026 Clippifi. All rights reserved.</p>
-          <button className="flex items-center gap-2 text-xs text-slate-400 hover:text-white">
+          <button className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
             <Globe className="h-4 w-4" /> English
           </button>
         </div>

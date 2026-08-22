@@ -5,7 +5,7 @@ const brands = ["YouTube", "TikTok", "Instagram", "Shopify", "Twitch", "Canva"];
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-[#0a0a0a]">
+    <section className="relative overflow-hidden bg-white dark:bg-[#0a0a0a]">
       <div
         className="animate-drift pointer-events-none absolute -top-40 right-0 h-[560px] w-[560px] rounded-full bg-yellow-400/20 blur-[120px]"
         aria-hidden
@@ -18,18 +18,18 @@ export default function Hero() {
 
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8 lg:pb-24 lg:pt-20">
         <div className="max-w-xl">
-          <h1 className="animate-fade-in-up text-4xl font-bold leading-tight text-white sm:text-5xl">
+          <h1 className="animate-fade-in-up text-4xl font-bold leading-tight text-slate-900 dark:text-white sm:text-5xl">
             The marketplace for premium{" "}
-            <span className="bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-yellow-500 to-amber-600 bg-clip-text text-transparent dark:from-yellow-300 dark:to-amber-400">
               video clips
             </span>{" "}
             and top{" "}
-            <span className="bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-yellow-500 to-amber-600 bg-clip-text text-transparent dark:from-yellow-300 dark:to-amber-400">
               editors
             </span>
           </h1>
           <p
-            className="animate-fade-in-up mt-5 text-base text-slate-400 sm:text-lg"
+            className="animate-fade-in-up mt-5 text-base text-slate-500 dark:text-slate-400 sm:text-lg"
             style={{ animationDelay: "120ms" }}
           >
             Buy ready-to-use clips or hire talented editors to create
@@ -51,7 +51,7 @@ export default function Hero() {
             </a>
             <a
               href="#creators"
-              className="rounded-lg border border-white/15 px-6 py-3 text-center text-sm font-medium text-white transition-transform duration-200 hover:scale-[1.03] hover:bg-white/5 active:scale-95"
+              className="rounded-lg border border-slate-200 px-6 py-3 text-center text-sm font-medium text-slate-900 transition-transform duration-200 hover:scale-[1.03] hover:bg-slate-100 active:scale-95 dark:border-white/15 dark:text-white dark:hover:bg-white/5"
             >
               Hire an Editor
             </a>
@@ -159,7 +159,7 @@ function ClipCard({
 }) {
   return (
     <div
-      className={`animate-float absolute overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/50 ${className}`}
+      className={`animate-float absolute overflow-hidden rounded-2xl border border-slate-200 shadow-2xl shadow-slate-300/50 dark:border-white/10 dark:shadow-black/50 ${className}`}
       style={{ aspectRatio: "9 / 16", animationDelay: floatDelay }}
     >
       <Image

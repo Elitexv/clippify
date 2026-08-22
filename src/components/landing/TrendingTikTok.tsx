@@ -24,16 +24,16 @@ const videos = [
 
 export default function TrendingTikTok() {
   return (
-    <section className="bg-[#0a0a0a] py-20">
+    <section className="bg-slate-50 py-20 dark:bg-[#0a0a0a]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">
             Trending on{" "}
-            <span className="bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-yellow-500 to-amber-600 bg-clip-text text-transparent dark:from-yellow-300 dark:to-amber-400">
               TikTok
             </span>
           </h2>
-          <p className="mt-3 text-slate-400">
+          <p className="mt-3 text-slate-500 dark:text-slate-400">
             Real, live clips — the kind of scroll-stopping content creators
             list and buyers discover on Clippifi.
           </p>
