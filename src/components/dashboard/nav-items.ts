@@ -43,6 +43,20 @@ export const accountCreateItems: NavItem[] = [
   { label: "Post a Job", href: "/dashboard/post-job", icon: Briefcase, roles: ["brand"] },
 ];
 
+export const accountMobileNavItems: NavItem[] = [
+  { label: "Home", href: "/dashboard", icon: Home },
+  { label: "Browse", href: "/dashboard/browse", icon: Search },
+  { label: "Compete", href: "/dashboard/competitions", icon: Trophy },
+  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: 3 },
+];
+
+export const adminMobileNavItems: NavItem[] = [
+  { label: "Overview", href: "/admin", icon: LayoutDashboard },
+  { label: "Users", href: "/admin/users", icon: UserCog },
+  { label: "Competitions", href: "/admin/competitions", icon: Trophy },
+  { label: "Moderation", href: "/admin/moderation", icon: ShieldCheck },
+];
+
 export const adminNavItems: NavItem[] = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: UserCog },

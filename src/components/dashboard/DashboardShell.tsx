@@ -17,7 +17,9 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
   accountCreateItems,
+  accountMobileNavItems,
   accountNavItems,
+  adminMobileNavItems,
   adminNavItems,
   isNavItemVisible,
   type NavItem,
@@ -44,6 +46,7 @@ export default function DashboardShell({
     area === "account"
       ? accountCreateItems.filter((item) => isNavItemVisible(item, user.role))
       : [];
+  const mobileNavItems = area === "admin" ? adminMobileNavItems : accountMobileNavItems;
 
   const handleLogout = () => {
     logout();
@@ -197,9 +200,65 @@ export default function DashboardShell({
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 px-4 pt-4 pb-24 sm:px-6 sm:pt-6 sm:pb-24 lg:p-8">
+          {children}
+        </main>
       </div>
+
+      <MobileTabBar items={mobileNavItems} onOpenMenu={() => setMobileOpen(true)} />
     </div>
+  );
+}
+
+function MobileTabBar({
+  items,
+  onOpenMenu,
+}: {
+  items: NavItem[];
+  onOpenMenu: () => void;
+}) {
+  const pathname = usePathname();
+
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-stretch border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-white/10 dark:bg-[#0a0a0a]/95 lg:hidden">
+      {items.map((item) => {
+        const active =
+          item.href === "/dashboard" || item.href === "/admin"
+            ? pathname === item.href
+            : pathname.startsWith(item.href);
+        const Icon = item.icon;
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
+              active
+                ? "text-amber-600 dark:text-yellow-400"
+                : "text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            <span className="relative">
+              <Icon className="h-5 w-5" />
+              {item.badge && (
+                <span className="absolute -right-2 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-black">
+                  {item.badge}
+                </span>
+              )}
+            </span>
+            {item.label}
+          </Link>
+        );
+      })}
+      <button
+        type="button"
+        onClick={onOpenMenu}
+        className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400"
+      >
+        <Menu className="h-5 w-5" />
+        Menu
+      </button>
+    </nav>
   );
 }
 
