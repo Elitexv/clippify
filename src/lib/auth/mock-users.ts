@@ -29,4 +29,13 @@ export const mockUsers: MockUser[] = [
     role: "admin",
     initials: "ML",
   },
+  {
+    id: "test-brand",
+    name: "Nova Sportswear",
+    username: "novasportswear",
+    email: "brand@clippifi.test",
+    password: "Brand1234!",
+    role: "brand",
+    initials: "NS",
+  },
 ];

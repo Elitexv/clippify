@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, ShieldCheck, User } from "lucide-react";
+import { Briefcase, Mail, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
@@ -64,6 +64,14 @@ export default function LoginForm() {
           >
             <User className="h-3.5 w-3.5" />
             Continue as Test User
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDemo("test-brand")}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-transform duration-200 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+          >
+            <Briefcase className="h-3.5 w-3.5" />
+            Continue as Test Brand
           </button>
           <button
             type="button"

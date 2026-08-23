@@ -1,22 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Trophy, Users, Wallet } from "lucide-react";
+import { CheckCircle2, Link2, Trophy, Users, Wallet } from "lucide-react";
+import { useAuth } from "@/lib/auth/auth-context";
 import { competitions } from "@/lib/mock-data";
+import { addSubmission } from "@/lib/submissions";
 
-type EntryState = "none" | "joined" | "withdrawn";
+type EndedState = "none" | "joined" | "withdrawn";
+type ActiveState = "none" | "entering" | "submitted";
+
+const inputClass =
+  "w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 
 export default function CompetitionsPage() {
-  const [entries, setEntries] = useState<Record<string, EntryState>>({
+  const { user } = useAuth();
+  const [endedEntries, setEndedEntries] = useState<Record<string, EndedState>>({
     // Seeded as already participated so the post-competition withdraw flow is visible.
     comp5: "joined",
   });
-
-  const toggleJoin = (id: string) =>
-    setEntries((e) => ({ ...e, [id]: e[id] === "joined" ? "none" : "joined" }));
+  const [activeEntries, setActiveEntries] = useState<Record<string, ActiveState>>({});
+  const [links, setLinks] = useState<Record<string, string>>({});
 
   const withdraw = (id: string) =>
-    setEntries((e) => ({ ...e, [id]: "withdrawn" }));
+    setEndedEntries((e) => ({ ...e, [id]: "withdrawn" }));
+
+  const startEntry = (id: string) =>
+    setActiveEntries((e) => ({ ...e, [id]: "entering" }));
+
+  const cancelEntry = (id: string) =>
+    setActiveEntries((e) => ({ ...e, [id]: "none" }));
+
+  const submitEntry = (comp: (typeof competitions)[number]) => {
+    const link = (links[comp.id] ?? "").trim();
+    if (!link) return;
+    addSubmission({
+      competitionId: comp.id,
+      competitionTitle: comp.title,
+      submittedBy: user?.name ?? "Anonymous",
+      link,
+    });
+    setActiveEntries((e) => ({ ...e, [comp.id]: "submitted" }));
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -27,7 +51,8 @@ export default function CompetitionsPage() {
 
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {competitions.map((comp) => {
-          const state = entries[comp.id] ?? "none";
+          const endedState = endedEntries[comp.id] ?? "none";
+          const activeState = activeEntries[comp.id] ?? "none";
           const ended = comp.status === "Ended";
 
           return (
@@ -58,12 +83,12 @@ export default function CompetitionsPage() {
 
               {ended ? (
                 <>
-                  {state === "joined" && (
+                  {endedState === "joined" && (
                     <p className="mt-3 text-xs text-slate-400">
                       You participated in this competition
                     </p>
                   )}
-                  {state === "withdrawn" ? (
+                  {endedState === "withdrawn" ? (
                     <button
                       disabled
                       className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-100 py-2.5 text-sm font-semibold text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"
@@ -71,7 +96,7 @@ export default function CompetitionsPage() {
                       <CheckCircle2 className="h-4 w-4" />
                       Withdrawn
                     </button>
-                  ) : state === "joined" ? (
+                  ) : endedState === "joined" ? (
                     <button
                       onClick={() => withdraw(comp.id)}
                       className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-400 to-emerald-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-emerald-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-95"
@@ -91,16 +116,53 @@ export default function CompetitionsPage() {
               ) : (
                 <>
                   <p className="mt-3 text-xs text-slate-400">Ends in {comp.endsIn}</p>
-                  <button
-                    onClick={() => toggleJoin(comp.id)}
-                    className={`mt-4 w-full rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
-                      state === "joined"
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"
-                        : "bg-gradient-to-r from-yellow-400 to-amber-500 text-black shadow-md shadow-yellow-500/20 hover:scale-[1.02]"
-                    }`}
-                  >
-                    {state === "joined" ? "You're in ✓" : "Join Competition"}
-                  </button>
+
+                  {activeState === "submitted" ? (
+                    <button
+                      disabled
+                      className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-100 py-2.5 text-sm font-semibold text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Entry submitted
+                    </button>
+                  ) : activeState === "entering" ? (
+                    <div className="mt-4">
+                      <div className="relative">
+                        <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                          autoFocus
+                          type="url"
+                          value={links[comp.id] ?? ""}
+                          onChange={(e) =>
+                            setLinks((l) => ({ ...l, [comp.id]: e.target.value }))
+                          }
+                          placeholder="Link to your clip entry"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          onClick={() => submitEntry(comp)}
+                          className="flex-1 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+                        >
+                          Submit Entry
+                        </button>
+                        <button
+                          onClick={() => cancelEntry(comp.id)}
+                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => startEntry(comp.id)}
+                      className="mt-4 w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                    >
+                      Join Competition
+                    </button>
+                  )}
                 </>
               )}
             </div>

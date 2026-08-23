@@ -37,6 +37,7 @@ export type Competition = {
   id: string;
   title: string;
   host: string;
+  hostId?: string;
   prize: string;
   entries: number;
   endsIn: string;
@@ -49,6 +50,7 @@ export const competitions: Competition[] = [
     id: "comp1",
     title: "Summer Drop Clipping Challenge",
     host: "Nova Sportswear",
+    hostId: "test-brand",
     prize: "$5,000",
     entries: 214,
     endsIn: "4 days",
@@ -76,6 +78,7 @@ export const competitions: Competition[] = [
     id: "comp5",
     title: "Holiday Highlight Reel 2025",
     host: "Nova Sportswear",
+    hostId: "test-brand",
     prize: "$4,000",
     entries: 341,
     endsIn: "Ended",
@@ -110,17 +113,18 @@ export type AdminCompetition = {
   id: string;
   title: string;
   host: string;
+  hostId?: string;
   prize: string;
   entries: number;
   status: "Active" | "Draft" | "Ended";
 };
 
 export const adminCompetitions: AdminCompetition[] = [
-  { id: "comp1", title: "Summer Drop Clipping Challenge", host: "Nova Sportswear", prize: "$5,000", entries: 214, status: "Active" },
+  { id: "comp1", title: "Summer Drop Clipping Challenge", host: "Nova Sportswear", hostId: "test-brand", prize: "$5,000", entries: 214, status: "Active" },
   { id: "comp2", title: "Best Gaming Highlight Reel", host: "PixelPlay Studios", prize: "$2,500", entries: 132, status: "Active" },
   { id: "comp3", title: "Podcast Moments Remix", host: "Focus Media Co.", prize: "$1,200", entries: 76, status: "Active" },
   { id: "comp4", title: "Spring Launch Teasers", host: "Orbit Apparel", prize: "$3,000", entries: 0, status: "Draft" },
-  { id: "comp5", title: "Holiday Highlight Reel 2025", host: "Nova Sportswear", prize: "$4,000", entries: 341, status: "Ended" },
+  { id: "comp5", title: "Holiday Highlight Reel 2025", host: "Nova Sportswear", hostId: "test-brand", prize: "$4,000", entries: 341, status: "Ended" },
 ];
 
 export const moderationQueue = [
