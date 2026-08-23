@@ -6,13 +6,13 @@ import {
   Heart,
   Home,
   LayoutDashboard,
+  Link2,
   MessageSquare,
   Search,
   Settings,
   ShieldCheck,
   ShoppingBag,
   Trophy,
-  Upload,
   UserCog,
   Users,
   Wallet,
@@ -39,7 +39,7 @@ export const accountNavItems: NavItem[] = [
 ];
 
 export const accountCreateItems: NavItem[] = [
-  { label: "Upload Video", href: "/dashboard/upload", icon: Upload, roles: ["creator"] },
+  { label: "Upload Link", href: "/dashboard/upload", icon: Link2, roles: ["creator"] },
   { label: "Post a Job", href: "/dashboard/post-job", icon: Briefcase, roles: ["brand"] },
 ];
 

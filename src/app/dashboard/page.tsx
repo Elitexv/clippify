@@ -9,10 +9,10 @@ import {
   ChevronRight,
   DollarSign,
   Heart,
+  Link2,
   Play,
   ShoppingBag,
   Trophy,
-  Upload,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import StatCard from "@/components/dashboard/StatCard";
@@ -67,10 +67,10 @@ export default function DashboardHome() {
         )}
         {showCreator && (
           <PromoBanner
-            icon={Upload}
+            icon={Link2}
             title="Upload & Earn"
-            text="Turn your raw footage into clips brands want to buy."
-            cta="Upload Video"
+            text="Drop a link to your clip and turn it into content brands want to buy."
+            cta="Upload Link"
             href="/dashboard/upload"
           />
         )}
