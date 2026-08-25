@@ -29,7 +29,7 @@ export default function LoginBrandPanel() {
         </span>
       </h2>
       <p className="mt-3 max-w-sm text-sm text-black/70 dark:text-slate-400">
-        The marketplace for premium video clips and top streamers.
+        The marketplace for premium video clips and streamers.
       </p>
 
       <div className="mt-8 flex flex-col gap-4">

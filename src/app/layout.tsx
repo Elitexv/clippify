@@ -18,9 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Clippifi — The Marketplace for Premium Video Clips & Top Streamers",
-  description:
-    "Buy ready-to-use clips or hire talented streamers to create scroll-stopping content.",
+  title: "Clippifi — The Marketplace for Premium Video Clips & Streamers",
+  description: "Engineering Distribution and Virality.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
