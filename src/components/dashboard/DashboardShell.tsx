@@ -220,7 +220,7 @@ function MobileTabBar({
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-stretch border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-white/10 dark:bg-[#0a0a0a]/95 lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-stretch border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-white/10 dark:bg-[#0a0a0a]/95 lg:hidden [@media(max-height:500px)]:hidden">
       {items.map((item) => {
         const active =
           item.href === "/dashboard" || item.href === "/admin"
