@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, Link2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, Link2, Upload, X } from "lucide-react";
 
 const categories = ["Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 
@@ -9,22 +9,47 @@ const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+type Mode = "link" | "file";
+
 export default function UploadPage() {
+  const [mode, setMode] = useState<Mode>("link");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [category, setCategory] = useState(categories[0]);
   const [price, setPrice] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+    };
+  }, [videoPreviewUrl]);
+
+  const handleFileChange = (file: File | null) => {
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+    setVideoFile(file);
+    setVideoPreviewUrl(file ? URL.createObjectURL(file) : null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !link.trim() || !price.trim()) return;
+    const hasSource = mode === "link" ? link.trim() : !!videoFile;
+    if (!title.trim() || !hasSource || !price.trim()) return;
     setSubmitted(true);
   };
 
   const submitAnother = () => {
     setTitle("");
     setLink("");
+    handleFileChange(null);
     setPrice("");
     setCategory(categories[0]);
     setSubmitted(false);
@@ -34,8 +59,8 @@ export default function UploadPage() {
     <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Upload Link</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Already posted your clip on TikTok, YouTube, or Instagram? Drop the link and list it
-        for buyers instead of re-uploading the file.
+        Already posted your clip on TikTok, YouTube, or Instagram? Drop the link — or upload the
+        video file directly if it&apos;s not live anywhere yet.
       </p>
 
       {submitted ? (
@@ -44,16 +69,18 @@ export default function UploadPage() {
             <CheckCircle2 className="h-6 w-6" />
           </span>
           <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
-            Link submitted for review
+            {mode === "link" ? "Link submitted for review" : "Video uploaded for review"}
           </h2>
           <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-            We&apos;ll verify the link and list &ldquo;{title}&rdquo; on the marketplace shortly.
+            {mode === "link"
+              ? `We'll verify the link and list "${title}" on the marketplace shortly.`
+              : `We'll process the video and list "${title}" on the marketplace shortly.`}
           </p>
           <button
             onClick={submitAnother}
             className="mt-5 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 dark:bg-yellow-400 dark:text-black"
           >
-            Submit another link
+            Submit another clip
           </button>
         </div>
       ) : (
@@ -72,21 +99,92 @@ export default function UploadPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Link to your clip</label>
-            <div className="relative mt-1.5">
-              <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="url"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                placeholder="https://tiktok.com/@you/video/..."
-                className={`${inputClass} mt-0 pl-10`}
-              />
+            <div className="inline-flex rounded-lg border border-slate-200 p-1 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setMode("link")}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  mode === "link"
+                    ? "bg-slate-900 text-white dark:bg-yellow-400 dark:text-black"
+                    : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                Paste a link
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("file")}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  mode === "file"
+                    ? "bg-slate-900 text-white dark:bg-yellow-400 dark:text-black"
+                    : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                Upload video file
+              </button>
             </div>
-            <p className="mt-1.5 text-xs text-slate-400">
-              Paste the public link from TikTok, YouTube Shorts, Instagram Reels, or wherever
-              it&apos;s posted.
-            </p>
+
+            {mode === "link" ? (
+              <div className="mt-3">
+                <label className={labelClass}>Link to your clip</label>
+                <div className="relative mt-1.5">
+                  <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="url"
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                    placeholder="https://tiktok.com/@you/video/..."
+                    className={`${inputClass} mt-0 pl-10`}
+                  />
+                </div>
+                <p className="mt-1.5 text-xs text-slate-400">
+                  Paste the public link from TikTok, YouTube Shorts, Instagram Reels, or wherever
+                  it&apos;s posted.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <label className={labelClass}>Video file</label>
+                {videoFile ? (
+                  <div className="mt-1.5 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
+                    {videoPreviewUrl && (
+                      // eslint-disable-next-line jsx-a11y/media-has-caption
+                      <video src={videoPreviewUrl} controls className="max-h-56 w-full bg-black" />
+                    )}
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                          {videoFile.name}
+                        </p>
+                        <p className="text-xs text-slate-400">{formatBytes(videoFile.size)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleFileChange(null)}
+                        aria-label="Remove video"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center transition-colors hover:border-yellow-400 dark:border-white/15 dark:bg-white/5">
+                    <Upload className="h-6 w-6 text-slate-400" />
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                      Click to upload a video
+                    </span>
+                    <span className="text-xs text-slate-400">MP4, MOV, or WebM</span>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -119,7 +217,7 @@ export default function UploadPage() {
             type="submit"
             className="mt-1 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
           >
-            Submit link
+            {mode === "link" ? "Submit link" : "Upload video"}
           </button>
         </form>
       )}

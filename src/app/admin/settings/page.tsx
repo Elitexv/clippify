@@ -1,43 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Settings } from "lucide-react";
-
-type PlatformSettings = {
-  commissionRate: string;
-  payoutSchedule: "Weekly" | "Biweekly" | "Monthly";
-  autoModeration: boolean;
-  allowHostedCompetitions: boolean;
-  maintenanceMode: boolean;
-};
-
-const STORAGE_KEY = "clippifi.admin-settings";
-
-const defaultSettings: PlatformSettings = {
-  commissionRate: "15",
-  payoutSchedule: "Biweekly",
-  autoModeration: false,
-  allowHostedCompetitions: true,
-  maintenanceMode: false,
-};
+import { Check, CreditCard, Settings } from "lucide-react";
+import {
+  defaultPlatformSettings,
+  getPlatformSettings,
+  savePlatformSettings,
+  type PaymentMethod,
+  type PlatformSettings,
+} from "@/lib/platform-settings";
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
+const paymentMethodLabels: Record<PaymentMethod, string> = {
+  card: "Credit / debit card",
+  paypal: "PayPal",
+  bank: "Bank transfer",
+};
+
 export default function AdminSettingsPage() {
-  const [settings, setSettings] = useState<PlatformSettings>(defaultSettings);
+  const [settings, setSettings] = useState<PlatformSettings>(defaultPlatformSettings);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        setSettings({ ...defaultSettings, ...JSON.parse(raw) });
-      } catch {
-        // ignore malformed stored settings
-      }
-    }
+    setSettings(getPlatformSettings());
   }, []);
 
   const update = <K extends keyof PlatformSettings>(key: K, value: PlatformSettings[K]) => {
@@ -45,9 +33,17 @@ export default function AdminSettingsPage() {
     setSaved(false);
   };
 
+  const toggleMethod = (method: PaymentMethod) => {
+    setSettings((s) => ({
+      ...s,
+      paymentMethods: { ...s.paymentMethods, [method]: !s.paymentMethods[method] },
+    }));
+    setSaved(false);
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    savePlatformSettings(settings);
     setSaved(true);
   };
 
@@ -95,6 +91,76 @@ export default function AdminSettingsPage() {
               <p className="mt-1.5 text-xs text-slate-400">
                 How often creator and streamer earnings are released.
               </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-slate-400" />
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Campaign payments</h2>
+          </div>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Controls how brands and creators pay for the campaigns they post, based on the
+            budget they set.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Campaign processing fee</label>
+              <div className="relative mt-1.5">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={settings.campaignProcessingFee}
+                  onChange={(e) => update("campaignProcessingFee", e.target.value)}
+                  className={`${inputClass} mt-0 pr-8`}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                  %
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs text-slate-400">
+                Added on top of the campaign budget at checkout.
+              </p>
+            </div>
+            <div>
+              <label className={labelClass}>Minimum campaign budget</label>
+              <div className="relative mt-1.5">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                  $
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  value={settings.minCampaignBudget}
+                  onChange={(e) => update("minCampaignBudget", e.target.value)}
+                  className={`${inputClass} mt-0 pl-7`}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-slate-400">
+                Campaigns below this budget can&apos;t be posted.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <p className={labelClass}>Accepted payment methods</p>
+            <div className="mt-2 flex flex-col gap-2">
+              {(Object.keys(paymentMethodLabels) as PaymentMethod[]).map((method) => (
+                <label
+                  key={method}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:text-slate-300"
+                >
+                  <input
+                    type="checkbox"
+                    checked={settings.paymentMethods[method]}
+                    onChange={() => toggleMethod(method)}
+                    className="h-4 w-4 rounded border-slate-300 accent-amber-500 dark:border-white/20 dark:bg-white/5"
+                  />
+                  {paymentMethodLabels[method]}
+                </label>
+              ))}
             </div>
           </div>
         </section>
