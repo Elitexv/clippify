@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Link2,
   Megaphone,
-  MessageSquare,
   Search,
   Settings,
   ShieldCheck,
@@ -37,19 +36,17 @@ export const accountNavItems: NavItem[] = [
   { label: "My Orders", href: "/dashboard/orders", icon: ShoppingBag, roles: ["brand"] },
   { label: "Earnings", href: "/dashboard/earnings", icon: DollarSign, roles: ["creator"] },
   { label: "Favorites", href: "/dashboard/favorites", icon: Heart },
-  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: 3 },
 ];
 
 export const accountCreateItems: NavItem[] = [
   { label: "Upload Link", href: "/dashboard/upload", icon: Link2, roles: ["creator"] },
-  { label: "Post a Job", href: "/dashboard/post-job", icon: Briefcase, roles: ["brand"] },
+  { label: "Post a Campaign", href: "/dashboard/post-job", icon: Briefcase, roles: ["brand"] },
 ];
 
 export const accountMobileNavItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Browse", href: "/dashboard/browse", icon: Search },
   { label: "Compete", href: "/dashboard/competitions", icon: Trophy },
-  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: 3 },
 ];
 
 export const adminMobileNavItems: NavItem[] = [

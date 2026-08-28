@@ -7,7 +7,7 @@ const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
-export default function PostJobPage() {
+export default function PostCampaignPage() {
   const [title, setTitle] = useState("");
   const [channelLink, setChannelLink] = useState("");
   const [brief, setBrief] = useState("");
@@ -32,7 +32,7 @@ export default function PostJobPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Post a Job</h1>
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Post a Campaign</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Drop a link to your channel or page so streamers know exactly where to go and start
         clipping.
@@ -44,7 +44,7 @@ export default function PostJobPage() {
             <CheckCircle2 className="h-6 w-6" />
           </span>
           <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
-            Job posted
+            Campaign posted
           </h2>
           <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
             &ldquo;{title}&rdquo; is live. Streamers can now follow your link and start
@@ -54,7 +54,7 @@ export default function PostJobPage() {
             onClick={postAnother}
             className="mt-5 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 dark:bg-yellow-400 dark:text-black"
           >
-            Post another job
+            Post another campaign
           </button>
         </div>
       ) : (
@@ -63,7 +63,7 @@ export default function PostJobPage() {
           className="mt-6 flex flex-col gap-5 rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]"
         >
           <div>
-            <label className={labelClass}>Job title</label>
+            <label className={labelClass}>Campaign title</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -126,7 +126,7 @@ export default function PostJobPage() {
             type="submit"
             className="mt-1 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
           >
-            Post job
+            Post campaign
           </button>
         </form>
       )}

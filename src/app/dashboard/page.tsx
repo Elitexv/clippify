@@ -59,9 +59,9 @@ export default function DashboardHome() {
         {showBrand && (
           <PromoBanner
             icon={Briefcase}
-            title="Hire a Streamer"
-            text="Post a job and get custom clips made by pro streamers."
-            cta="Post a Job"
+            title="Post a Campaign"
+            text="Post a campaign and get custom clips made by pro streamers."
+            cta="Post a Campaign"
             href="/dashboard/post-job"
           />
         )}
@@ -77,7 +77,12 @@ export default function DashboardHome() {
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard icon={ShoppingBag} label="Active Orders" value="3" hint="+1 this week" />
+        <StatCard
+          icon={ShoppingBag}
+          label={showBrand ? "Active Campaigns" : "Active Orders"}
+          value="3"
+          hint="+1 this week"
+        />
         <StatCard icon={Heart} label="Favorites" value="18" />
         {showCreator && (
           <StatCard icon={DollarSign} label="Total Earnings" value="$1,240" hint="+$180" />
