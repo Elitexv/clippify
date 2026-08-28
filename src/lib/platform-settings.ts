@@ -1,4 +1,9 @@
-export type PaymentMethod = "card" | "paypal" | "bank";
+export type ProviderId = "stripe" | "paypal" | "bank";
+
+export type ProviderConfig = {
+  enabled: boolean;
+  keys: Record<string, string>;
+};
 
 export type PlatformSettings = {
   commissionRate: string;
@@ -8,10 +13,42 @@ export type PlatformSettings = {
   maintenanceMode: boolean;
   campaignProcessingFee: string;
   minCampaignBudget: string;
-  paymentMethods: Record<PaymentMethod, boolean>;
+  paymentProviders: Record<ProviderId, ProviderConfig>;
+};
+
+export type KeyField = {
+  key: string;
+  label: string;
+  placeholder: string;
+  secret?: boolean;
+};
+
+export const providerMeta: Record<ProviderId, { name: string; description: string }> = {
+  stripe: { name: "Stripe", description: "Card payments via Stripe Checkout." },
+  paypal: { name: "PayPal", description: "PayPal and Venmo payments." },
+  bank: { name: "Bank transfer", description: "Manual ACH / wire transfer details." },
+};
+
+export const providerFieldSchemas: Record<ProviderId, KeyField[]> = {
+  stripe: [
+    { key: "publishableKey", label: "Publishable key", placeholder: "pk_live_…" },
+    { key: "secretKey", label: "Secret key", placeholder: "sk_live_…", secret: true },
+    { key: "webhookSecret", label: "Webhook signing secret", placeholder: "whsec_…", secret: true },
+  ],
+  paypal: [
+    { key: "clientId", label: "Client ID", placeholder: "AZDx2…" },
+    { key: "clientSecret", label: "Client secret", placeholder: "EOxy9…", secret: true },
+  ],
+  bank: [
+    { key: "accountName", label: "Account holder name", placeholder: "Clippifi Inc." },
+    { key: "accountNumber", label: "Account number", placeholder: "000123456789" },
+    { key: "routingNumber", label: "Routing number", placeholder: "021000021" },
+  ],
 };
 
 const STORAGE_KEY = "clippifi.admin-settings";
+
+const emptyProvider = (): ProviderConfig => ({ enabled: false, keys: {} });
 
 export const defaultPlatformSettings: PlatformSettings = {
   commissionRate: "15",
@@ -21,7 +58,11 @@ export const defaultPlatformSettings: PlatformSettings = {
   maintenanceMode: false,
   campaignProcessingFee: "5",
   minCampaignBudget: "50",
-  paymentMethods: { card: true, paypal: true, bank: false },
+  paymentProviders: {
+    stripe: emptyProvider(),
+    paypal: emptyProvider(),
+    bank: emptyProvider(),
+  },
 };
 
 export function getPlatformSettings(): PlatformSettings {
@@ -33,7 +74,11 @@ export function getPlatformSettings(): PlatformSettings {
     return {
       ...defaultPlatformSettings,
       ...parsed,
-      paymentMethods: { ...defaultPlatformSettings.paymentMethods, ...parsed.paymentMethods },
+      paymentProviders: {
+        stripe: { ...emptyProvider(), ...parsed.paymentProviders?.stripe },
+        paypal: { ...emptyProvider(), ...parsed.paymentProviders?.paypal },
+        bank: { ...emptyProvider(), ...parsed.paymentProviders?.bank },
+      },
     };
   } catch {
     return defaultPlatformSettings;
@@ -47,4 +92,16 @@ export function savePlatformSettings(settings: PlatformSettings) {
 export function parseCurrency(value: string): number {
   const n = parseFloat(value.replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) ? n : 0;
+}
+
+/** A provider is "connected" once every required key field for it has a value. */
+export function isProviderConnected(providerId: ProviderId, config: ProviderConfig): boolean {
+  return providerFieldSchemas[providerId].every((field) => (config.keys[field.key] ?? "").trim().length > 0);
+}
+
+/** Providers a buyer/brand can actually pay with: connected AND enabled by an admin. */
+export function getLiveProviders(settings: PlatformSettings): ProviderId[] {
+  return (Object.keys(settings.paymentProviders) as ProviderId[]).filter(
+    (id) => settings.paymentProviders[id].enabled && isProviderConnected(id, settings.paymentProviders[id])
+  );
 }

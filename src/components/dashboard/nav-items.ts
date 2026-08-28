@@ -5,6 +5,7 @@ import {
   DollarSign,
   Heart,
   Home,
+  KeyRound,
   LayoutDashboard,
   Link2,
   Megaphone,
@@ -62,6 +63,7 @@ export const adminNavItems: NavItem[] = [
   { label: "Competitions", href: "/admin/competitions", icon: Trophy },
   { label: "Moderation", href: "/admin/moderation", icon: ShieldCheck },
   { label: "Payouts", href: "/admin/payouts", icon: Wallet },
+  { label: "Manage Payments", href: "/admin/manage-payments", icon: KeyRound },
   { label: "Reports", href: "/admin/reports", icon: BarChart3 },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];

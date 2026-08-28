@@ -12,19 +12,21 @@ import {
   X,
 } from "lucide-react";
 import {
+  getLiveProviders,
   getPlatformSettings,
   parseCurrency,
-  type PaymentMethod,
+  providerMeta,
+  type ProviderId,
 } from "@/lib/platform-settings";
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
-const methodMeta: Record<PaymentMethod, { label: string; icon: typeof CreditCard }> = {
-  card: { label: "Credit / debit card", icon: CreditCard },
-  paypal: { label: "PayPal", icon: Banknote },
-  bank: { label: "Bank transfer", icon: Landmark },
+const providerIcon: Record<ProviderId, typeof CreditCard> = {
+  stripe: CreditCard,
+  paypal: Banknote,
+  bank: Landmark,
 };
 
 type Step = "form" | "payment" | "success";
@@ -40,13 +42,11 @@ export default function PostCampaignPage() {
   const [formError, setFormError] = useState("");
 
   const [step, setStep] = useState<Step>("form");
-  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [method, setMethod] = useState<ProviderId | null>(null);
   const [paying, setPaying] = useState(false);
 
   const settings = getPlatformSettings();
-  const enabledMethods = (Object.keys(settings.paymentMethods) as PaymentMethod[]).filter(
-    (m) => settings.paymentMethods[m]
-  );
+  const enabledMethods = getLiveProviders(settings);
 
   useEffect(() => {
     if (!method && enabledMethods.length > 0) setMethod(enabledMethods[0]);
@@ -165,14 +165,15 @@ export default function PostCampaignPage() {
 
           {enabledMethods.length === 0 ? (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">
-              No payment methods are enabled. Ask an admin to enable one in Settings.
+              No payment providers are connected yet. Ask an admin to add API keys in Manage
+              Payments.
             </p>
           ) : (
             <div>
               <p className={labelClass}>Payment method</p>
               <div className="mt-2 flex flex-col gap-2">
                 {enabledMethods.map((m) => {
-                  const Icon = methodMeta[m].icon;
+                  const Icon = providerIcon[m];
                   return (
                     <label
                       key={m}
@@ -191,7 +192,7 @@ export default function PostCampaignPage() {
                       />
                       <Icon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                       <span className="text-slate-700 dark:text-slate-300">
-                        {methodMeta[m].label}
+                        {providerMeta[m].name}
                       </span>
                     </label>
                   );

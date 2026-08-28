@@ -1,24 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, CreditCard, Settings } from "lucide-react";
+import Link from "next/link";
+import { Check, CreditCard, KeyRound, Settings } from "lucide-react";
 import {
   defaultPlatformSettings,
   getPlatformSettings,
   savePlatformSettings,
-  type PaymentMethod,
   type PlatformSettings,
 } from "@/lib/platform-settings";
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
-
-const paymentMethodLabels: Record<PaymentMethod, string> = {
-  card: "Credit / debit card",
-  paypal: "PayPal",
-  bank: "Bank transfer",
-};
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<PlatformSettings>(defaultPlatformSettings);
@@ -30,14 +24,6 @@ export default function AdminSettingsPage() {
 
   const update = <K extends keyof PlatformSettings>(key: K, value: PlatformSettings[K]) => {
     setSettings((s) => ({ ...s, [key]: value }));
-    setSaved(false);
-  };
-
-  const toggleMethod = (method: PaymentMethod) => {
-    setSettings((s) => ({
-      ...s,
-      paymentMethods: { ...s.paymentMethods, [method]: !s.paymentMethods[method] },
-    }));
     setSaved(false);
   };
 
@@ -144,25 +130,18 @@ export default function AdminSettingsPage() {
             </div>
           </div>
 
-          <div className="mt-5">
-            <p className={labelClass}>Accepted payment methods</p>
-            <div className="mt-2 flex flex-col gap-2">
-              {(Object.keys(paymentMethodLabels) as PaymentMethod[]).map((method) => (
-                <label
-                  key={method}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:text-slate-300"
-                >
-                  <input
-                    type="checkbox"
-                    checked={settings.paymentMethods[method]}
-                    onChange={() => toggleMethod(method)}
-                    className="h-4 w-4 rounded border-slate-300 accent-amber-500 dark:border-white/20 dark:bg-white/5"
-                  />
-                  {paymentMethodLabels[method]}
-                </label>
-              ))}
-            </div>
-          </div>
+          <Link
+            href="/admin/manage-payments"
+            className="mt-5 flex items-center justify-between gap-3 rounded-lg border border-dashed border-slate-200 px-3 py-2.5 text-sm text-slate-600 transition-colors hover:border-yellow-400 hover:text-slate-900 dark:border-white/15 dark:text-slate-300 dark:hover:text-white"
+          >
+            <span className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-slate-400" />
+              Connect payment providers &amp; API keys
+            </span>
+            <span className="text-xs font-medium text-amber-600 dark:text-yellow-400">
+              Manage Payments →
+            </span>
+          </Link>
         </section>
 
         <section className="rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]">
