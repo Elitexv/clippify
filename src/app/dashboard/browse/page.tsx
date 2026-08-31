@@ -81,7 +81,7 @@ export default function BrowseClipsPage() {
                   {clip.price}
                 </span>
                 <button className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold text-white transition-transform duration-200 hover:scale-105 active:scale-95 dark:bg-yellow-400 dark:text-black">
-                  Buy
+                  License
                 </button>
               </div>
             </div>

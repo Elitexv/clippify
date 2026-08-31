@@ -4,7 +4,7 @@ import Logo from "@/components/Logo";
 const columns = [
   {
     title: "Marketplace",
-    links: ["Browse Clips", "Hire Streamers", "Collections", "Popular Creators"],
+    links: ["Find Talent", "Hire Streamers", "Collections", "Popular Creators"],
   },
   {
     title: "For Creators",
@@ -31,7 +31,7 @@ export default function Footer() {
               <span className="text-lg font-semibold text-slate-900 dark:text-white">Clippifi</span>
             </a>
             <p className="mt-4 max-w-xs text-sm text-slate-500 dark:text-slate-500">
-              The marketplace for premium video clips and streamers.
+              The marketplace for streamers and clip editors.
             </p>
             <div className="mt-5 flex items-center gap-3">
               {[TikTokIcon, InstagramIcon, YoutubeIcon, XIcon].map((Icon, i) => (

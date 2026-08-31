@@ -5,7 +5,7 @@ import SignupForm from "@/components/auth/SignupForm";
 
 export const metadata: Metadata = {
   title: "Create your account — Clippifi",
-  description: "Join Clippifi to hire streamers, host clipping competitions, or sell your clips.",
+  description: "Join Clippifi to hire streamers, connect with clip editors, and grow your content network.",
 };
 
 export default function SignupPage() {

@@ -11,6 +11,9 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import RequireAuth from "@/components/dashboard/RequireAuth";
+import { useAuth } from "@/lib/auth/auth-context";
+import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
 import {
   getLiveProviders,
   getPlatformSettings,
@@ -32,6 +35,15 @@ const providerIcon: Record<ProviderId, typeof CreditCard> = {
 type Step = "form" | "payment" | "success";
 
 export default function PostCampaignPage() {
+  return (
+    <RequireAuth area="brand">
+      <PostCampaignPageContent />
+    </RequireAuth>
+  );
+}
+
+function PostCampaignPageContent() {
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [channelLink, setChannelLink] = useState("");
   const [brief, setBrief] = useState("");
@@ -42,16 +54,11 @@ export default function PostCampaignPage() {
   const [formError, setFormError] = useState("");
 
   const [step, setStep] = useState<Step>("form");
-  const [method, setMethod] = useState<ProviderId | null>(null);
-  const [paying, setPaying] = useState(false);
 
   const settings = getPlatformSettings();
   const enabledMethods = getLiveProviders(settings);
-
-  useEffect(() => {
-    if (!method && enabledMethods.length > 0) setMethod(enabledMethods[0]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabledMethods.length]);
+  const [method, setMethod] = useState<ProviderId | null>(enabledMethods[0] ?? null);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -85,12 +92,31 @@ export default function PostCampaignPage() {
     setStep("payment");
   };
 
-  const handlePay = () => {
+  const handlePay = async () => {
+    if (!user) {
+      setFormError("You must be signed in to post a campaign.");
+      return;
+    }
+
     setPaying(true);
-    setTimeout(() => {
+    try {
+      const flyerUrl = flyer ? await uploadCampaignFlyer(user.id, flyer) : "";
+      await createCampaign({
+        brandId: user.id,
+        title: title.trim(),
+        channelLink: channelLink.trim(),
+        brief,
+        budget: budgetAmount,
+        deadline,
+        flyerUrl,
+        status: "active",
+      });
       setPaying(false);
       setStep("success");
-    }, 1200);
+    } catch (error) {
+      setPaying(false);
+      setFormError(error instanceof Error ? error.message : "Could not save the campaign. Please try again.");
+    }
   };
 
   const postAnother = () => {

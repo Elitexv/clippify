@@ -7,95 +7,131 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { mockUsers, type MockUser, type Role } from "./mock-users";
+import {
+  loginWithFirebase,
+  logoutFromFirebase,
+  registerWithFirebase,
+  signInWithOAuth,
+  subscribeToAuth,
+  type AppUser,
+} from "@/lib/firebase-helpers";
+import type { AppRole } from "@/lib/firebase-helpers";
 
-type LoginResult = { ok: true; user: MockUser } | { ok: false; error: string };
+type LoginResult = { ok: true; user: AppUser } | { ok: false; error: string };
+
+export function getDashboardRouteForRole(role?: AppRole | null) {
+  if (role === "admin") return "/admin";
+  if (role === "brand" || role === "both") return "/dashboard?view=brand";
+  if (role === "creator") return "/dashboard?view=creator";
+  return "/dashboard";
+}
 
 type AuthState = {
-  user: MockUser | null;
+  user: AppUser | null;
   isLoading: boolean;
-  login: (email: string, password: string) => LoginResult;
-  loginAs: (id: string) => MockUser | null;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  loginAs: (id: string) => Promise<AppUser | null>;
   register: (input: {
     name: string;
+    username?: string;
     email: string;
-    role: Exclude<Role, "admin">;
-  }) => MockUser;
-  logout: () => void;
+    password: string;
+    role: Exclude<AppRole, "admin">;
+  }) => Promise<AppUser>;
+  signInWithGoogle: () => Promise<LoginResult>;
+  signInWithApple: () => Promise<LoginResult>;
+  logout: () => Promise<void>;
+  getDashboardRoute: (role?: AppRole | null) => string;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
-const STORAGE_KEY = "clippifi.session";
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const chars = parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "");
-  return chars.join("") || "?";
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<MockUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          setUser(JSON.parse(stored) as MockUser);
-        } catch {
-          localStorage.removeItem(STORAGE_KEY);
-        }
-      }
+    const unsubscribe = subscribeToAuth((nextUser) => {
+      setUser(nextUser);
       setIsLoading(false);
     });
-    return () => cancelAnimationFrame(raf);
+
+    return () => unsubscribe();
   }, []);
 
-  const persist = (next: MockUser) => {
-    setUser(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  const login = async (email: string, password: string): Promise<LoginResult> => {
+    try {
+      const nextUser = await loginWithFirebase(email.trim(), password);
+      if (!nextUser) {
+        return { ok: false, error: "No account found for this email." };
+      }
+      setUser(nextUser);
+      return { ok: true, user: nextUser };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Invalid email or password.";
+      return { ok: false, error: message };
+    }
   };
 
-  const login = (email: string, password: string): LoginResult => {
-    const found = mockUsers.find(
-      (u) =>
-        u.email.toLowerCase() === email.trim().toLowerCase() &&
-        u.password === password
-    );
-    if (!found) return { ok: false, error: "Invalid email or password." };
-    persist(found);
-    return { ok: true, user: found };
+  const loginAs = async (_id: string) => {
+    return null;
   };
 
-  const loginAs = (id: string) => {
-    const found = mockUsers.find((u) => u.id === id);
-    if (!found) return null;
-    persist(found);
-    return found;
+  const register: AuthState["register"] = async ({ name, username, email, password, role }) => {
+    const resolvedUsername = (username ?? name).trim() || name.trim() || "creator";
+    try {
+      const nextUser = await registerWithFirebase({
+        name,
+        username: resolvedUsername,
+        email: email.trim(),
+        password,
+        role,
+      });
+      setUser(nextUser);
+      return nextUser;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unable to create account.";
+      throw new Error(message);
+    }
   };
 
-  const register: AuthState["register"] = ({ name, email, role }) => {
-    const next: MockUser = {
-      id: `local-${Date.now()}`,
-      name,
-      username: name.toLowerCase().replace(/\s+/g, ""),
-      email,
-      password: "",
-      role,
-      initials: initials(name),
-    };
-    persist(next);
-    return next;
+  const signInWithGoogle = async (): Promise<LoginResult> => {
+    try {
+      const nextUser = await signInWithOAuth("google");
+      setUser(nextUser);
+      return { ok: true, user: nextUser };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Google sign-in failed.";
+      return { ok: false, error: message };
+    }
   };
 
-  const logout = () => {
+  const signInWithApple = async (): Promise<LoginResult> => {
+    try {
+      const nextUser = await signInWithOAuth("apple");
+      setUser(nextUser);
+      return { ok: true, user: nextUser };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Apple sign-in failed.";
+      return { ok: false, error: message };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await logoutFromFirebase();
+    } catch {
+      // Firebase may not be configured in mock/demo flows.
+    }
     setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
   };
+
+  const getDashboardRoute = (role?: AppRole | null) => getDashboardRouteForRole(role ?? user?.role ?? null);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, loginAs, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, login, loginAs, register, signInWithGoogle, signInWithApple, logout, getDashboardRoute }}
+    >
       {children}
     </AuthContext.Provider>
   );

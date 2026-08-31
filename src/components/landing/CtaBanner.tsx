@@ -10,10 +10,10 @@ export default function CtaBanner() {
           </span>
           <div>
             <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">
-              Ready to find the perfect clip or hire a top streamer?
+              Ready to connect with top streamers and clip editors?
             </h3>
             <p className="mt-1 text-sm text-slate-500">
-              Join thousands of creators and brands growing their content with Clippifi.
+              Join creators and brands building better content partnerships with Clippifi.
             </p>
           </div>
         </div>
@@ -28,7 +28,7 @@ export default function CtaBanner() {
             href="#clips"
             className="rounded-lg border border-slate-200 bg-white px-6 py-3 text-center text-sm font-medium text-slate-700 transition-transform duration-200 hover:scale-105 hover:bg-slate-100 active:scale-95"
           >
-            Browse Clips
+            Find Talent
           </a>
         </div>
       </div>

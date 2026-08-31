@@ -19,20 +19,20 @@ export default function Hero() {
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8 lg:pb-24 lg:pt-20">
         <div className="max-w-xl">
           <h1 className="animate-fade-in-up text-4xl font-bold leading-tight text-slate-900 dark:text-white sm:text-5xl">
-            The marketplace for premium{" "}
+            The marketplace for{" "}
             <span className="bg-gradient-to-r from-yellow-500 to-amber-600 bg-clip-text text-transparent dark:from-yellow-300 dark:to-amber-400">
-              video clips
+              streamers
             </span>{" "}
             and{" "}
             <span className="bg-gradient-to-r from-yellow-500 to-amber-600 bg-clip-text text-transparent dark:from-yellow-300 dark:to-amber-400">
-              streamers
+              clip editors
             </span>
           </h1>
           <p
             className="animate-fade-in-up mt-5 text-base text-slate-500 dark:text-slate-400 sm:text-lg"
             style={{ animationDelay: "120ms" }}
           >
-            Engineering Distribution and Virality.
+            Connect creators with trusted clip editors and high-impact content partners.
           </p>
 
           <div

@@ -35,7 +35,7 @@ export default function TrendingTikTok() {
           </h2>
           <p className="mt-3 text-slate-500 dark:text-slate-400">
             Real, live clips — the kind of scroll-stopping content creators
-            list and buyers discover on Clippifi.
+            share and brands discover through Clippifi.
           </p>
         </div>
 

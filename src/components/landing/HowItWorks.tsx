@@ -4,17 +4,17 @@ const steps = [
   {
     icon: Search,
     title: "1. Discover",
-    text: "Browse thousands of high-quality clips or find the right streamer.",
+    text: "Browse streamer profiles and find the right match for your content needs.",
   },
   {
     icon: ShoppingCart,
-    title: "2. Buy or Hire",
-    text: "Purchase clips instantly or post a job and hire the best streamer.",
+    title: "2. Connect & Hire",
+    text: "Post a job and connect with top clip editors and streamers for custom work.",
   },
   {
     icon: Download,
     title: "3. Receive",
-    text: "Get your clips delivered or review the streamer's work.",
+    text: "Review the work, approve the edits, and get your content delivered.",
   },
   {
     icon: Rocket,
@@ -32,7 +32,7 @@ export default function HowItWorks() {
             How it <span className="text-amber-600">works</span>
           </h2>
           <p className="mt-3 text-slate-500">
-            Get the perfect clips or hire streamers in just a few simple steps.
+            Connect with the right streamers and clip editors in just a few simple steps.
           </p>
         </div>
 

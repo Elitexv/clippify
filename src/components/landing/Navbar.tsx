@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 
-const exploreLinks = ["Browse Clips", "Hire Streamers", "Collections", "Popular Creators"];
+const exploreLinks = ["Find Talent", "Hire Streamers", "Collections", "Popular Creators"];
 const resourceLinks = ["Creator Dashboard", "Blog", "Help Center", "API Docs"];
 
 const navLink =

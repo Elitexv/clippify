@@ -8,6 +8,12 @@ import { useAuth } from "@/lib/auth/auth-context";
 import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
 
+const getDashboardRouteForRole = (role: (typeof roles)[number]["id"] | "admin") => {
+  if (role === "admin") return "/admin";
+  if (role === "brand" || role === "both") return "/dashboard?view=brand";
+  return "/dashboard?view=creator";
+};
+
 const roles = [
   {
     id: "brand",
@@ -30,7 +36,7 @@ const roles = [
 ] as const;
 
 export default function SignupForm() {
-  const { register } = useAuth();
+  const { register, signInWithGoogle, signInWithApple } = useAuth();
   const router = useRouter();
 
   const [role, setRole] = useState<(typeof roles)[number]["id"]>("creator");
@@ -40,11 +46,22 @@ export default function SignupForm() {
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed || !fullName.trim() || !email.trim() || !password) return;
-    register({ name: fullName.trim(), email: email.trim(), role });
-    router.push("/dashboard");
+
+    try {
+      await register({
+        name: fullName.trim(),
+        username: username.trim(),
+        email: email.trim(),
+        password,
+        role,
+      });
+      router.push(getDashboardRouteForRole(role));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Account creation failed.");
+    }
   };
 
   return (
@@ -63,7 +80,25 @@ export default function SignupForm() {
       </p>
 
       <div className="mt-6">
-        <OAuthButtons emailLabel="Continue with Email" />
+        <OAuthButtons
+          emailLabel="Continue with Email"
+          onGoogle={async () => {
+            const result = await signInWithGoogle();
+            if (!result.ok) {
+              alert(result.error);
+              return;
+            }
+            router.push(result.user.role === "admin" ? "/admin" : "/dashboard");
+          }}
+          onApple={async () => {
+            const result = await signInWithApple();
+            if (!result.ok) {
+              alert(result.error);
+              return;
+            }
+            router.push(result.user.role === "admin" ? "/admin" : "/dashboard");
+          }}
+        />
       </div>
 
       <div className="my-6 flex items-center gap-3">

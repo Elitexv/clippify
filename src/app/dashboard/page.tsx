@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
   BadgeCheck,
@@ -32,12 +33,34 @@ const roleLabel: Record<string, string> = {
 
 export default function DashboardHome() {
   const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [joined, setJoined] = useState<Record<string, boolean>>({});
 
   if (!user) return null;
 
-  const showBrand = user.role === "brand" || user.role === "both";
-  const showCreator = user.role === "creator" || user.role === "both";
+  const canViewBrand = user.role === "brand" || user.role === "both";
+  const canViewCreator = user.role === "creator" || user.role === "both";
+  const requestedView = searchParams.get("view");
+  const activeView: "brand" | "creator" =
+    requestedView === "brand"
+      ? "brand"
+      : requestedView === "creator"
+        ? "creator"
+        : user.role === "brand"
+          ? "brand"
+          : user.role === "creator"
+            ? "creator"
+            : "brand";
+
+  const showBrand = (activeView === "brand" && canViewBrand) || (!canViewCreator && canViewBrand);
+  const showCreator = (activeView === "creator" && canViewCreator) || (!canViewBrand && canViewCreator);
+
+  const setRoleView = (nextView: "brand" | "creator") => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", nextView);
+    router.replace(`/dashboard?${params.toString()}`);
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -47,12 +70,46 @@ export default function DashboardHome() {
             Welcome back, {user.name.split(" ")[0]} 👋
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Here&apos;s what&apos;s happening with your account today.
+            {showBrand
+              ? "Track campaigns, creative briefs, and brand performance."
+              : "Manage clips, earnings, and creator opportunities."}
           </p>
         </div>
-        <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400">
-          {roleLabel[user.role]}
-        </span>
+        <div className="flex items-center gap-2">
+          {(canViewBrand || canViewCreator) && (
+            <div className="inline-flex rounded-full border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-[#111]">
+              {canViewBrand && (
+                <button
+                  type="button"
+                  onClick={() => setRoleView("brand")}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    activeView === "brand"
+                      ? "bg-amber-500 text-black"
+                      : "text-slate-600 dark:text-slate-300"
+                  }`}
+                >
+                  Brand view
+                </button>
+              )}
+              {canViewCreator && (
+                <button
+                  type="button"
+                  onClick={() => setRoleView("creator")}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    activeView === "creator"
+                      ? "bg-amber-500 text-black"
+                      : "text-slate-600 dark:text-slate-300"
+                  }`}
+                >
+                  Creator view
+                </button>
+              )}
+            </div>
+          )}
+          <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400">
+            {roleLabel[user.role]}
+          </span>
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -69,7 +126,7 @@ export default function DashboardHome() {
           <PromoBanner
             icon={Link2}
             title="Upload & Earn"
-            text="Drop a link to your clip and turn it into content brands want to buy."
+            text="Drop a link to your clip and connect with brands looking for creator content."
             cta="Upload Link"
             href="/dashboard/upload"
           />

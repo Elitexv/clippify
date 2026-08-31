@@ -3,38 +3,41 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Briefcase, Mail, ShieldCheck, User } from "lucide-react";
+import { Mail } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
 
 export default function LoginForm() {
-  const { login, loginAs } = useAuth();
+  const { login, signInWithGoogle, signInWithApple, isLoading, getDashboardRoute } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const goToDashboard = (role: string) => {
-    router.push(role === "admin" ? "/admin" : "/dashboard");
+    router.push(getDashboardRoute(role as "brand" | "creator" | "both" | "admin"));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = login(email, password);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    setError("");
-    goToDashboard(result.user.role);
-  };
+    if (isLoading || isSubmitting) return;
 
-  const handleDemo = (id: string) => {
-    const user = loginAs(id);
-    if (user) goToDashboard(user.role);
+    setIsSubmitting(true);
+    try {
+      const result = await login(email, password);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setError("");
+      goToDashboard(result.user.role);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -52,40 +55,38 @@ export default function LoginForm() {
         </Link>
       </p>
 
-      <div className="mt-5 rounded-xl border border-dashed border-amber-300 bg-yellow-50 p-3 dark:border-yellow-400/30 dark:bg-yellow-400/5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-yellow-400">
-          Demo accounts
-        </p>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => handleDemo("test-user")}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-transform duration-200 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-          >
-            <User className="h-3.5 w-3.5" />
-            Continue as Test User
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDemo("test-brand")}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-transform duration-200 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-          >
-            <Briefcase className="h-3.5 w-3.5" />
-            Continue as Test Brand
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDemo("test-admin")}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-transform duration-200 hover:scale-[1.02] dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-          >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Continue as Test Admin
-          </button>
-        </div>
-      </div>
-
       <div className="mt-6">
-        <OAuthButtons emailLabel="Continue with Email link" />
+        <OAuthButtons
+          emailLabel="Continue with Email link"
+          onGoogle={async () => {
+            if (isLoading || isSubmitting) return;
+            setIsSubmitting(true);
+            try {
+              const result = await signInWithGoogle();
+              if (!result.ok) {
+                setError(result.error);
+                return;
+              }
+              goToDashboard(result.user.role);
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+          onApple={async () => {
+            if (isLoading || isSubmitting) return;
+            setIsSubmitting(true);
+            try {
+              const result = await signInWithApple();
+              if (!result.ok) {
+                setError(result.error);
+                return;
+              }
+              goToDashboard(result.user.role);
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+        />
       </div>
 
       <div className="my-6 flex items-center gap-3">
@@ -146,9 +147,10 @@ export default function LoginForm() {
 
         <button
           type="submit"
-          className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-lg shadow-yellow-500/30 transition-transform duration-200 hover:scale-[1.02] hover:opacity-90 active:scale-[0.98]"
+          disabled={isLoading || isSubmitting}
+          className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-lg shadow-yellow-500/30 transition-transform duration-200 hover:scale-[1.02] hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Log in
+          {isSubmitting ? "Logging in…" : "Log in"}
         </button>
       </form>
 

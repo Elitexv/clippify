@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
   Briefcase,
+  ClipboardList,
   DollarSign,
   Heart,
   Home,
@@ -18,13 +19,13 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import type { Role } from "@/lib/auth/mock-users";
+import type { AppRole } from "@/lib/firebase-helpers";
 
 export type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
-  roles?: Role[];
+  roles?: AppRole[];
   badge?: number;
 };
 
@@ -33,6 +34,7 @@ export const accountNavItems: NavItem[] = [
   { label: "Browse Clips", href: "/dashboard/browse", icon: Search },
   { label: "Hire Streamers", href: "/dashboard/hire", icon: Users, roles: ["brand"] },
   { label: "Competitions", href: "/dashboard/competitions", icon: Trophy },
+  { label: "My Campaigns", href: "/dashboard/campaigns", icon: ClipboardList, roles: ["brand"] },
   { label: "Hosted Events", href: "/dashboard/hosted-events", icon: Megaphone, roles: ["brand"] },
   { label: "My Orders", href: "/dashboard/orders", icon: ShoppingBag, roles: ["brand"] },
   { label: "Earnings", href: "/dashboard/earnings", icon: DollarSign, roles: ["creator"] },
@@ -68,7 +70,7 @@ export const adminNavItems: NavItem[] = [
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
-export function isNavItemVisible(item: NavItem, role: Role): boolean {
+export function isNavItemVisible(item: NavItem, role: AppRole): boolean {
   if (!item.roles) return true;
   if (role === "both") return true;
   return item.roles.includes(role);

@@ -99,7 +99,7 @@ export function isProviderConnected(providerId: ProviderId, config: ProviderConf
   return providerFieldSchemas[providerId].every((field) => (config.keys[field.key] ?? "").trim().length > 0);
 }
 
-/** Providers a buyer/brand can actually pay with: connected AND enabled by an admin. */
+/** Providers a brand or creator can actually pay with: connected AND enabled by an admin. */
 export function getLiveProviders(settings: PlatformSettings): ProviderId[] {
   return (Object.keys(settings.paymentProviders) as ProviderId[]).filter(
     (id) => settings.paymentProviders[id].enabled && isProviderConnected(id, settings.paymentProviders[id])

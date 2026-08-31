@@ -17,8 +17,8 @@ export default function SignupBrandPanel() {
         today
       </h2>
       <p className="mt-3 max-w-sm text-sm text-black/70 dark:text-slate-400">
-        Hire streamers, host clipping competitions, or sell your clips to
-        brands worldwide.
+        Hire streamers, connect with clip editors, and grow your content
+        network worldwide.
       </p>
 
       <div className="mt-8 flex flex-col gap-4">
