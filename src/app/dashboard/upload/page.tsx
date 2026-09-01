@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Link2, Upload, X } from "lucide-react";
+import { CheckCircle2, Link2, Loader2, Upload, X } from "lucide-react";
+import RequireAuth from "@/components/dashboard/RequireAuth";
+import { useAuth } from "@/lib/auth/auth-context";
+import { createClip, uploadClipVideo } from "@/lib/clips";
+import { parseCurrency } from "@/lib/platform-settings";
 
 const categories = ["Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 
@@ -18,6 +22,15 @@ function formatBytes(bytes: number) {
 type Mode = "link" | "file";
 
 export default function UploadPage() {
+  return (
+    <RequireAuth area="account">
+      <UploadPageContent />
+    </RequireAuth>
+  );
+}
+
+function UploadPageContent() {
+  const { user } = useAuth();
   const [mode, setMode] = useState<Mode>("link");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
@@ -25,6 +38,8 @@ export default function UploadPage() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [category, setCategory] = useState(categories[0]);
   const [price, setPrice] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -39,11 +54,33 @@ export default function UploadPage() {
     setVideoPreviewUrl(file ? URL.createObjectURL(file) : null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     const hasSource = mode === "link" ? link.trim() : !!videoFile;
-    if (!title.trim() || !hasSource || !price.trim()) return;
-    setSubmitted(true);
+    if (!title.trim() || !hasSource || !price.trim() || !user) {
+      setError("Fill in the clip title, price, and a link or video file.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const videoUrl = mode === "file" && videoFile ? await uploadClipVideo(user.id, videoFile) : "";
+      await createClip({
+        creatorId: user.id,
+        creatorName: user.name,
+        title: title.trim(),
+        category,
+        price: parseCurrency(price),
+        link: mode === "link" ? link.trim() : "",
+        videoUrl,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not submit the clip. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const submitAnother = () => {
@@ -52,6 +89,7 @@ export default function UploadPage() {
     handleFileChange(null);
     setPrice("");
     setCategory(categories[0]);
+    setError("");
     setSubmitted(false);
   };
 
@@ -72,9 +110,8 @@ export default function UploadPage() {
             {mode === "link" ? "Link submitted for review" : "Video uploaded for review"}
           </h2>
           <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-            {mode === "link"
-              ? `We'll verify the link and list "${title}" on the marketplace shortly.`
-              : `We'll process the video and list "${title}" on the marketplace shortly.`}
+            &ldquo;{title}&rdquo; is in the moderation queue. Once approved, it&apos;ll list on
+            Browse Clips for buyers to find.
           </p>
           <button
             onClick={submitAnother}
@@ -148,7 +185,6 @@ export default function UploadPage() {
                 {videoFile ? (
                   <div className="mt-1.5 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
                     {videoPreviewUrl && (
-                      // eslint-disable-next-line jsx-a11y/media-has-caption
                       <video src={videoPreviewUrl} controls className="max-h-56 w-full bg-black" />
                     )}
                     <div className="flex items-center justify-between px-3 py-2">
@@ -213,11 +249,23 @@ export default function UploadPage() {
             </div>
           </div>
 
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
           <button
             type="submit"
-            className="mt-1 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+            disabled={submitting}
+            className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {mode === "link" ? "Submit link" : "Upload video"}
+            {submitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {mode === "link" ? "Submitting…" : "Uploading…"}
+              </>
+            ) : mode === "link" ? (
+              "Submit link"
+            ) : (
+              "Upload video"
+            )}
           </button>
         </form>
       )}

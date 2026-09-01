@@ -26,10 +26,15 @@ const providerIcon: Record<ProviderId, typeof CreditCard> = {
 
 export default function ManagePaymentsPage() {
   const [settings, setSettings] = useState<PlatformSettings>(defaultPlatformSettings);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setSettings(getPlatformSettings());
+    getPlatformSettings().then((s) => {
+      setSettings(s);
+      setLoading(false);
+    });
   }, []);
 
   const toggleEnabled = (id: ProviderId) => {
@@ -54,11 +59,24 @@ export default function ManagePaymentsPage() {
     setSaved(false);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    savePlatformSettings(settings);
-    setSaved(true);
+    setSaving(true);
+    try {
+      await savePlatformSettings(settings);
+      setSaved(true);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500 dark:border-white/10 dark:border-t-yellow-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -71,9 +89,9 @@ export default function ManagePaymentsPage() {
       <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-dashed border-amber-300 bg-yellow-50 p-3 text-xs text-amber-800 dark:border-yellow-400/30 dark:bg-yellow-400/5 dark:text-yellow-300">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          For this demo, keys are stored locally in your browser only. In production, secret
-          keys must never be stored or exposed client-side — they belong in a server-side
-          environment/secrets manager, accessed only through backend API calls.
+          These keys are stored in Firestore and readable by any signed-in admin. For a real
+          production deployment, secret keys should instead live in a server-side secrets
+          manager and be used only from backend API calls — never shipped to the client at all.
         </p>
       </div>
 
@@ -146,9 +164,10 @@ export default function ManagePaymentsPage() {
         <div className="flex items-center gap-3">
           <button
             type="submit"
-            className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+            disabled={saving}
+            className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Save changes
+            {saving ? "Saving…" : "Save changes"}
           </button>
           {saved && (
             <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">

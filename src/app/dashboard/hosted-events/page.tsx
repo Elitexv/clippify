@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ExternalLink, Megaphone, Trophy, Users, X } from "lucide-react";
+import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
-import { competitions } from "@/lib/mock-data";
 import ComingSoon from "@/components/dashboard/ComingSoon";
 import {
-  getSubmissions,
+  subscribeToAllSubmissions,
+  subscribeToCompetitionsForHost,
   updateSubmissionStatus,
+  type Competition,
   type CompetitionSubmission,
-} from "@/lib/submissions";
+} from "@/lib/competitions";
 
 const statusStyle: Record<CompetitionSubmission["status"], string> = {
   Pending: "bg-amber-100 text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400",
@@ -18,15 +20,40 @@ const statusStyle: Record<CompetitionSubmission["status"], string> = {
 };
 
 export default function HostedEventsPage() {
+  return (
+    <RequireAuth area="brand">
+      <HostedEventsContent />
+    </RequireAuth>
+  );
+}
+
+function HostedEventsContent() {
   const { user } = useAuth();
-  const [submissions, setSubmissions] = useState(() => getSubmissions());
+  const [hostedCompetitions, setHostedCompetitions] = useState<Competition[]>([]);
+  const [submissions, setSubmissions] = useState<CompetitionSubmission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
 
-  if (!user) return null;
+  useEffect(() => {
+    if (!user) return;
+    const unsubComps = subscribeToCompetitionsForHost(user.id, (next) => {
+      setHostedCompetitions(next);
+      setLoading(false);
+    });
+    const unsubSubs = subscribeToAllSubmissions(setSubmissions);
+    return () => {
+      unsubComps();
+      unsubSubs();
+    };
+  }, [user]);
 
-  const hostedCompetitions = competitions.filter((c) => c.hostId === user.id);
-
-  const resolve = (id: string, status: "Approved" | "Rejected") => {
-    setSubmissions(updateSubmissionStatus(id, status));
+  const resolve = async (id: string, status: "Approved" | "Rejected") => {
+    setRowBusy((b) => ({ ...b, [id]: true }));
+    try {
+      await updateSubmissionStatus(id, status);
+    } finally {
+      setRowBusy((b) => ({ ...b, [id]: false }));
+    }
   };
 
   return (
@@ -36,12 +63,16 @@ export default function HostedEventsPage() {
         Competitions you&apos;re hosting and the clip links streamers have submitted.
       </p>
 
-      {hostedCompetitions.length === 0 ? (
+      {loading ? (
+        <div className="mt-6 flex items-center justify-center py-16">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500 dark:border-white/10 dark:border-t-yellow-400" />
+        </div>
+      ) : hostedCompetitions.length === 0 ? (
         <div className="mt-6">
           <ComingSoon
             icon={Megaphone}
             title="You're not hosting any events yet"
-            text="Create a clipping competition from the admin console to see entries here."
+            text="Ask an admin to create a clipping competition for your brand account to see entries here."
           />
         </div>
       ) : (
@@ -89,7 +120,9 @@ export default function HostedEventsPage() {
                           <tr key={s.id} className="border-b border-slate-50 last:border-0 dark:border-white/5">
                             <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
                               {s.submittedBy}
-                              <p className="text-xs font-normal text-slate-400">{s.submittedAt}</p>
+                              <p className="text-xs font-normal text-slate-400">
+                                {s.submittedAt ? s.submittedAt.toDate().toLocaleDateString() : "—"}
+                              </p>
                             </td>
                             <td className="px-4 py-3">
                               <a
@@ -112,14 +145,16 @@ export default function HostedEventsPage() {
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => resolve(s.id, "Approved")}
-                                    className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-xs font-semibold text-white transition-transform duration-200 hover:scale-105 active:scale-95"
+                                    disabled={rowBusy[s.id]}
+                                    className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-xs font-semibold text-white transition-transform duration-200 hover:scale-105 active:scale-95 disabled:opacity-60"
                                   >
                                     <Check className="h-3.5 w-3.5" />
                                     Approve
                                   </button>
                                   <button
                                     onClick={() => resolve(s.id, "Rejected")}
-                                    className="flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 transition-transform duration-200 hover:scale-105 active:scale-95 dark:bg-red-500/10 dark:text-red-400"
+                                    disabled={rowBusy[s.id]}
+                                    className="flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 transition-transform duration-200 hover:scale-105 active:scale-95 disabled:opacity-60 dark:bg-red-500/10 dark:text-red-400"
                                   >
                                     <X className="h-3.5 w-3.5" />
                                     Reject

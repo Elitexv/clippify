@@ -1,28 +1,28 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
   Briefcase,
   ChevronRight,
   DollarSign,
+  Film,
   Heart,
   Link2,
   Play,
   ShoppingBag,
   Trophy,
 } from "lucide-react";
+import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import StatCard from "@/components/dashboard/StatCard";
-import {
-  competitions,
-  featuredClips,
-  recentOrders,
-  trendingCreators,
-} from "@/lib/mock-data";
+import ComingSoon from "@/components/dashboard/ComingSoon";
+import { fetchFavoriteIds, subscribeToApprovedClips, subscribeToClipsForUser, type Clip } from "@/lib/clips";
+import { subscribeToCompetitions, subscribeToSubmissionsForUser, type Competition } from "@/lib/competitions";
+import { subscribeToCampaignsForUser, type Campaign } from "@/lib/firebase-helpers";
+import { subscribeToOrdersForCreator, type Order } from "@/lib/orders";
 
 const roleLabel: Record<string, string> = {
   brand: "Brand",
@@ -32,10 +32,68 @@ const roleLabel: Record<string, string> = {
 };
 
 export default function DashboardHome() {
+  return (
+    <RequireAuth area="account">
+      <DashboardHomeContent />
+    </RequireAuth>
+  );
+}
+
+function DashboardHomeContent() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [joined, setJoined] = useState<Record<string, boolean>>({});
+
+  const [clips, setClips] = useState<Clip[]>([]);
+  const [myClips, setMyClips] = useState<Clip[]>([]);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [mySubmissions, setMySubmissions] = useState<number>(0);
+  const [myOrders, setMyOrders] = useState<Order[]>([]);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+
+  useEffect(() => {
+    const unsubClips = subscribeToApprovedClips(setClips);
+    const unsubCompetitions = subscribeToCompetitions(setCompetitions);
+    return () => {
+      unsubClips();
+      unsubCompetitions();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsubMyClips = subscribeToClipsForUser(user.id, setMyClips);
+    const unsubCampaigns = subscribeToCampaignsForUser(user.id, setCampaigns);
+    const unsubSubs = subscribeToSubmissionsForUser(user.id, (subs) => setMySubmissions(subs.length));
+    const unsubOrders = subscribeToOrdersForCreator(user.id, setMyOrders);
+    fetchFavoriteIds(user.id).then((ids) => setFavoriteCount(ids.size));
+    return () => {
+      unsubMyClips();
+      unsubCampaigns();
+      unsubSubs();
+      unsubOrders();
+    };
+  }, [user]);
+
+  const trendingCreators = useMemo(() => {
+    const counts = new Map<string, { name: string; clips: number }>();
+    for (const clip of clips) {
+      const entry = counts.get(clip.creatorId) ?? { name: clip.creatorName, clips: 0 };
+      entry.clips += 1;
+      counts.set(clip.creatorId, entry);
+    }
+    const colors = [
+      "bg-amber-500 text-black",
+      "bg-slate-800 text-white",
+      "bg-orange-500 text-white",
+      "bg-sky-500 text-white",
+    ];
+    return [...counts.entries()]
+      .sort((a, b) => b[1].clips - a[1].clips)
+      .slice(0, 4)
+      .map(([id, entry], i) => ({ id, ...entry, color: colors[i % colors.length] }));
+  }, [clips]);
 
   if (!user) return null;
 
@@ -61,6 +119,9 @@ export default function DashboardHome() {
     params.set("view", nextView);
     router.replace(`/dashboard?${params.toString()}`);
   };
+
+  const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
+  const clipEarnings = myOrders.reduce((sum, o) => sum + o.amount, 0);
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -134,146 +195,144 @@ export default function DashboardHome() {
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          icon={ShoppingBag}
-          label={showBrand ? "Active Campaigns" : "Active Orders"}
-          value="3"
-          hint="+1 this week"
-        />
-        <StatCard icon={Heart} label="Favorites" value="18" />
-        {showCreator && (
-          <StatCard icon={DollarSign} label="Total Earnings" value="$1,240" hint="+$180" />
+        {showBrand ? (
+          <StatCard icon={ShoppingBag} label="Active Campaigns" value={String(activeCampaigns)} />
+        ) : (
+          <StatCard icon={Film} label="Clips Uploaded" value={String(myClips.length)} />
         )}
-        <StatCard icon={Trophy} label="Competitions Joined" value={String(Object.values(joined).filter(Boolean).length + 2)} />
+        <StatCard icon={Heart} label="Favorites" value={String(favoriteCount)} />
+        {showCreator && (
+          <StatCard icon={DollarSign} label="Total Earnings" value={`$${clipEarnings.toFixed(2)}`} />
+        )}
+        <StatCard icon={Trophy} label="Competitions Joined" value={String(mySubmissions)} />
       </div>
 
       <SectionHeader title="Featured Clips" href="/dashboard/browse" />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {featuredClips.map((clip) => (
-          <div
-            key={clip.id}
-            className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm shadow-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-[#111] dark:shadow-none"
-          >
-            <div className="relative aspect-video">
-              <Image
-                src={`https://picsum.photos/seed/${clip.imageSeed}/400/240`}
-                alt=""
-                fill
-                sizes="(min-width: 1024px) 22vw, 45vw"
-                className="object-cover transition duration-300 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black/20" />
-              <span className="absolute left-2 top-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                {clip.duration}
-              </span>
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 backdrop-blur transition group-hover:scale-110 group-hover:bg-white/25">
-                  <Play className="h-3.5 w-3.5 fill-white text-white" />
-                </span>
-              </span>
-            </div>
-            <div className="p-3">
-              <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                {clip.title}
-              </p>
-              <div className="mt-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                <span>{clip.author}</span>
-                <span className="font-semibold text-amber-600 dark:text-yellow-400">{clip.price}</span>
+      {clips.length === 0 ? (
+        <ComingSoon icon={Film} title="No clips yet" text="Approved clips will show up here." />
+      ) : (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {clips.slice(0, 4).map((clip) => (
+            <div
+              key={clip.id}
+              className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm shadow-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-[#111] dark:shadow-none"
+            >
+              <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950">
+                {clip.videoUrl ? (
+                  <video src={clip.videoUrl} className="h-full w-full object-cover" muted />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 backdrop-blur">
+                    <Play className="h-3.5 w-3.5 fill-white text-white" />
+                  </span>
+                )}
+              </div>
+              <div className="p-3">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                  {clip.title}
+                </p>
+                <div className="mt-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span>{clip.creatorName}</span>
+                  <span className="font-semibold text-amber-600 dark:text-yellow-400">
+                    ${clip.price.toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <SectionHeader title="Active Competitions" href="/dashboard/competitions" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {competitions
-          .filter((comp) => comp.status === "Active")
-          .map((comp) => (
-          <div
-            key={comp.id}
-            className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm shadow-slate-100 dark:border-white/10 dark:bg-[#111] dark:shadow-none"
-          >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-100 text-black dark:bg-yellow-400/10 dark:text-yellow-400">
-              <Trophy className="h-5 w-5" />
-            </span>
-            <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-              {comp.title}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Hosted by {comp.host}</p>
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span className="font-semibold text-amber-600 dark:text-yellow-400">
-                {comp.prize} prize
-              </span>
-              <span>{comp.entries} entries</span>
-            </div>
-            <button
-              onClick={() => setJoined((j) => ({ ...j, [comp.id]: !j[comp.id] }))}
-              className={`mt-4 w-full rounded-lg py-2 text-xs font-semibold transition-all duration-200 active:scale-95 ${
-                joined[comp.id]
-                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"
-                  : "bg-gradient-to-r from-yellow-400 to-amber-500 text-black hover:scale-[1.02]"
-              }`}
-            >
-              {joined[comp.id] ? "Joined ✓" : `Join · ends in ${comp.endsIn}`}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <SectionHeader title="Trending Creators" href="/dashboard/hire" />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {trendingCreators.map((c) => (
-          <div
-            key={c.id}
-            className="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm shadow-slate-100 dark:border-white/10 dark:bg-[#111] dark:shadow-none"
-          >
-            <span className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold ${c.color}`}>
-              {c.name.charAt(0)}
-            </span>
-            <p className="mt-2 flex items-center justify-center gap-1 text-sm font-semibold text-slate-900 dark:text-white">
-              {c.name}
-              <BadgeCheck className="h-3.5 w-3.5 text-sky-500" />
-            </p>
-            <p className="text-xs text-amber-600 dark:text-yellow-400">{c.badge}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{c.clips} clips</p>
-          </div>
-        ))}
-      </div>
-
-      <SectionHeader title="Recent Orders" href="/dashboard/orders" />
-      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white dark:border-white/10 dark:bg-[#111]">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400 dark:border-white/10">
-              <th className="px-4 py-3 font-medium">Clip</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="hidden px-4 py-3 font-medium sm:table-cell">Date</th>
-              <th className="px-4 py-3 text-right font-medium">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentOrders.map((o) => (
-              <tr key={o.id} className="border-b border-slate-50 last:border-0 dark:border-white/5">
-                <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{o.clip}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      o.status === "Delivered"
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"
-                        : "bg-amber-100 text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400"
-                    }`}
-                  >
-                    {o.status}
-                  </span>
-                </td>
-                <td className="hidden px-4 py-3 text-slate-500 dark:text-slate-400 sm:table-cell">{o.date}</td>
-                <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white">{o.amount}</td>
-              </tr>
+      {competitions.filter((c) => c.status === "Active").length === 0 ? (
+        <ComingSoon icon={Trophy} title="No active competitions" text="Check back soon for new competitions to join." />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {competitions
+            .filter((comp) => comp.status === "Active")
+            .slice(0, 3)
+            .map((comp) => (
+              <div
+                key={comp.id}
+                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm shadow-slate-100 dark:border-white/10 dark:bg-[#111] dark:shadow-none"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-100 text-black dark:bg-yellow-400/10 dark:text-yellow-400">
+                  <Trophy className="h-5 w-5" />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">{comp.title}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Hosted by {comp.hostName}</p>
+                <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span className="font-semibold text-amber-600 dark:text-yellow-400">{comp.prize} prize</span>
+                  <span>{comp.entries} entries</span>
+                </div>
+                <Link
+                  href="/dashboard/competitions"
+                  className="mt-4 block w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2 text-center text-xs font-semibold text-black transition-transform duration-200 hover:scale-[1.02]"
+                >
+                  View & join
+                </Link>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+        </div>
+      )}
+
+      {trendingCreators.length > 0 && (
+        <>
+          <SectionHeader title="Trending Creators" href="/dashboard/browse" />
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {trendingCreators.map((c) => (
+              <div
+                key={c.id}
+                className="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm shadow-slate-100 dark:border-white/10 dark:bg-[#111] dark:shadow-none"
+              >
+                <span className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold ${c.color}`}>
+                  {c.name.charAt(0)}
+                </span>
+                <p className="mt-2 flex items-center justify-center gap-1 text-sm font-semibold text-slate-900 dark:text-white">
+                  {c.name}
+                  <BadgeCheck className="h-3.5 w-3.5 text-sky-500" />
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{c.clips} clips</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {showBrand && (
+        <>
+          <SectionHeader title="My Campaigns" href="/dashboard/campaigns" />
+          {campaigns.length === 0 ? (
+            <ComingSoon icon={Briefcase} title="No campaigns yet" text="Post a campaign to get started." />
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white dark:border-white/10 dark:bg-[#111]">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400 dark:border-white/10">
+                    <th className="px-4 py-3 font-medium">Campaign</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 text-right font-medium">Budget</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaigns.slice(0, 5).map((c) => (
+                    <tr key={c.id} className="border-b border-slate-50 last:border-0 dark:border-white/5">
+                      <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{c.title}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium capitalize text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400">
+                          {c.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white">
+                        ${c.budget.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
       <div className="h-4" />
     </div>
   );

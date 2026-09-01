@@ -15,10 +15,12 @@ import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
 import {
+  defaultPlatformSettings,
   getLiveProviders,
   getPlatformSettings,
   parseCurrency,
   providerMeta,
+  type PlatformSettings,
   type ProviderId,
 } from "@/lib/platform-settings";
 
@@ -55,10 +57,19 @@ function PostCampaignPageContent() {
 
   const [step, setStep] = useState<Step>("form");
 
-  const settings = getPlatformSettings();
+  const [settings, setSettings] = useState<PlatformSettings>(defaultPlatformSettings);
+  const [settingsLoading, setSettingsLoading] = useState(true);
   const enabledMethods = getLiveProviders(settings);
-  const [method, setMethod] = useState<ProviderId | null>(enabledMethods[0] ?? null);
+  const [selectedMethod, setSelectedMethod] = useState<ProviderId | null>(null);
+  const method = selectedMethod ?? enabledMethods[0] ?? null;
   const [paying, setPaying] = useState(false);
+
+  useEffect(() => {
+    getPlatformSettings().then((s) => {
+      setSettings(s);
+      setSettingsLoading(false);
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -129,6 +140,14 @@ function PostCampaignPageContent() {
     setFormError("");
     setStep("form");
   };
+
+  if (settingsLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500 dark:border-white/10 dark:border-t-yellow-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -213,7 +232,7 @@ function PostCampaignPageContent() {
                         type="radio"
                         name="payment-method"
                         checked={method === m}
-                        onChange={() => setMethod(m)}
+                        onChange={() => setSelectedMethod(m)}
                         className="h-4 w-4 accent-amber-500"
                       />
                       <Icon className="h-4 w-4 text-slate-500 dark:text-slate-400" />

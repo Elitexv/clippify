@@ -1,3 +1,6 @@
+import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 export type ProviderId = "stripe" | "paypal" | "bank";
 
 export type ProviderConfig = {
@@ -46,8 +49,6 @@ export const providerFieldSchemas: Record<ProviderId, KeyField[]> = {
   ],
 };
 
-const STORAGE_KEY = "clippifi.admin-settings";
-
 const emptyProvider = (): ProviderConfig => ({ enabled: false, keys: {} });
 
 export const defaultPlatformSettings: PlatformSettings = {
@@ -65,28 +66,44 @@ export const defaultPlatformSettings: PlatformSettings = {
   },
 };
 
-export function getPlatformSettings(): PlatformSettings {
-  if (typeof window === "undefined") return defaultPlatformSettings;
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) return defaultPlatformSettings;
+const SETTINGS_DOC = doc(db, "settings", "platform");
+
+function normalize(raw: unknown): PlatformSettings {
+  const parsed = (raw ?? {}) as Partial<PlatformSettings>;
+  return {
+    ...defaultPlatformSettings,
+    ...parsed,
+    paymentProviders: {
+      stripe: { ...emptyProvider(), ...parsed.paymentProviders?.stripe },
+      paypal: { ...emptyProvider(), ...parsed.paymentProviders?.paypal },
+      bank: { ...emptyProvider(), ...parsed.paymentProviders?.bank },
+    },
+  };
+}
+
+export async function getPlatformSettings(): Promise<PlatformSettings> {
   try {
-    const parsed = JSON.parse(raw);
-    return {
-      ...defaultPlatformSettings,
-      ...parsed,
-      paymentProviders: {
-        stripe: { ...emptyProvider(), ...parsed.paymentProviders?.stripe },
-        paypal: { ...emptyProvider(), ...parsed.paymentProviders?.paypal },
-        bank: { ...emptyProvider(), ...parsed.paymentProviders?.bank },
-      },
-    };
-  } catch {
+    const snap = await getDoc(SETTINGS_DOC);
+    return snap.exists() ? normalize(snap.data()) : defaultPlatformSettings;
+  } catch (error) {
+    console.error("Failed to load platform settings:", error);
     return defaultPlatformSettings;
   }
 }
 
-export function savePlatformSettings(settings: PlatformSettings) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+export function subscribeToPlatformSettings(callback: (settings: PlatformSettings) => void) {
+  return onSnapshot(
+    SETTINGS_DOC,
+    (snap) => callback(snap.exists() ? normalize(snap.data()) : defaultPlatformSettings),
+    (error) => {
+      console.error("Platform settings listener error:", error);
+      callback(defaultPlatformSettings);
+    },
+  );
+}
+
+export async function savePlatformSettings(settings: PlatformSettings) {
+  await setDoc(SETTINGS_DOC, settings, { merge: false });
 }
 
 export function parseCurrency(value: string): number {
@@ -94,12 +111,11 @@ export function parseCurrency(value: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** A provider is "connected" once every required key field for it has a value. */
+/** Providers a brand or creator can actually pay with: connected AND enabled by an admin. */
 export function isProviderConnected(providerId: ProviderId, config: ProviderConfig): boolean {
   return providerFieldSchemas[providerId].every((field) => (config.keys[field.key] ?? "").trim().length > 0);
 }
 
-/** Providers a brand or creator can actually pay with: connected AND enabled by an admin. */
 export function getLiveProviders(settings: PlatformSettings): ProviderId[] {
   return (Object.keys(settings.paymentProviders) as ProviderId[]).filter(
     (id) => settings.paymentProviders[id].enabled && isProviderConnected(id, settings.paymentProviders[id])

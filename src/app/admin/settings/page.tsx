@@ -16,10 +16,15 @@ const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<PlatformSettings>(defaultPlatformSettings);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setSettings(getPlatformSettings());
+    getPlatformSettings().then((s) => {
+      setSettings(s);
+      setLoading(false);
+    });
   }, []);
 
   const update = <K extends keyof PlatformSettings>(key: K, value: PlatformSettings[K]) => {
@@ -27,11 +32,24 @@ export default function AdminSettingsPage() {
     setSaved(false);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    savePlatformSettings(settings);
-    setSaved(true);
+    setSaving(true);
+    try {
+      await savePlatformSettings(settings);
+      setSaved(true);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500 dark:border-white/10 dark:border-t-yellow-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -178,9 +196,10 @@ export default function AdminSettingsPage() {
         <div className="flex items-center gap-3">
           <button
             type="submit"
-            className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+            disabled={saving}
+            className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Save changes
+            {saving ? "Saving…" : "Save changes"}
           </button>
           {saved && (
             <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
@@ -193,7 +212,7 @@ export default function AdminSettingsPage() {
 
       <div className="mt-8 flex items-center gap-2 text-xs text-slate-400">
         <Settings className="h-3.5 w-3.5" />
-        Changes apply to this browser session and are stored locally for this demo.
+        Changes apply platform-wide and are shared with every admin.
       </div>
     </div>
   );

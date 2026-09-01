@@ -30,7 +30,6 @@ type AuthState = {
   user: AppUser | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
-  loginAs: (id: string) => Promise<AppUser | null>;
   register: (input: {
     name: string;
     username?: string;
@@ -71,10 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const message = error instanceof Error ? error.message : "Invalid email or password.";
       return { ok: false, error: message };
     }
-  };
-
-  const loginAs = async (_id: string) => {
-    return null;
   };
 
   const register: AuthState["register"] = async ({ name, username, email, password, role }) => {
@@ -118,11 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    try {
-      await logoutFromFirebase();
-    } catch {
-      // Firebase may not be configured in mock/demo flows.
-    }
+    await logoutFromFirebase();
     setUser(null);
   };
 
@@ -130,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, login, loginAs, register, signInWithGoogle, signInWithApple, logout, getDashboardRoute }}
+      value={{ user, isLoading, login, register, signInWithGoogle, signInWithApple, logout, getDashboardRoute }}
     >
       {children}
     </AuthContext.Provider>

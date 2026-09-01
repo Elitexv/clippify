@@ -28,6 +28,8 @@ import { auth, db, storage } from "@/lib/firebase";
 
 export type AppRole = "brand" | "creator" | "both" | "admin";
 
+export type AccountStatus = "Active" | "Suspended";
+
 export type AppUser = {
   id: string;
   name: string;
@@ -35,6 +37,7 @@ export type AppUser = {
   email: string;
   role: AppRole;
   initials: string;
+  status?: AccountStatus;
   createdAt?: string | null;
   updatedAt?: string | null;
 };
@@ -65,6 +68,7 @@ export async function createFirebaseUserProfile({
     email,
     role,
     initials: getInitials(name),
+    status: "Active",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -102,7 +106,7 @@ export async function registerWithFirebase({
   });
 }
 
-export function createUserProfileFromFirebaseUser(firebaseUser: User, fallbackRole: AppRole = "creator") {
+export function createUserProfileFromFirebaseUser(firebaseUser: User, fallbackRole: AppRole = "creator"): AppUser {
   const displayName = firebaseUser.displayName?.trim() || "New User";
   const email = firebaseUser.email || "";
   const username = (firebaseUser.displayName || email.split("@")[0] || "user")
@@ -118,9 +122,10 @@ export function createUserProfileFromFirebaseUser(firebaseUser: User, fallbackRo
     email,
     role: fallbackRole,
     initials: getInitials(displayName),
+    status: "Active",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  } satisfies AppUser;
+  };
 }
 
 export async function ensureUserProfile(firebaseUser: User, fallbackRole: AppRole = "creator") {
@@ -139,7 +144,12 @@ export async function ensureUserProfile(firebaseUser: User, fallbackRole: AppRol
 
 export async function loginWithFirebase(email: string, password: string) {
   const credential = await signInWithEmailAndPassword(auth, email, password);
-  return ensureUserProfile(credential.user, "creator");
+  const profile = await ensureUserProfile(credential.user, "creator");
+  if (profile.status === "Suspended") {
+    await signOut(auth);
+    throw new Error("This account has been suspended. Contact support for help.");
+  }
+  return profile;
 }
 
 export async function signInWithOAuth(providerName: "google" | "apple") {
@@ -280,4 +290,25 @@ export async function fetchCampaignsForUser(userId: string): Promise<Campaign[]>
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Campaign);
+}
+
+// --- Admin: platform-wide user management ---
+
+export function subscribeToAllUsers(callback: (users: AppUser[]) => void) {
+  return onSnapshot(
+    collection(db, "users"),
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AppUser)),
+    (error) => {
+      console.error("Users listener error:", error);
+      callback([]);
+    },
+  );
+}
+
+export async function setUserStatus(uid: string, status: AccountStatus) {
+  await setDoc(doc(db, "users", uid), { status, updatedAt: new Date().toISOString() }, { merge: true });
+}
+
+export async function setUserRole(uid: string, role: AppRole) {
+  await setDoc(doc(db, "users", uid), { role, updatedAt: new Date().toISOString() }, { merge: true });
 }

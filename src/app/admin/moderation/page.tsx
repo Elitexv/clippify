@@ -1,19 +1,31 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
-import { Check, ShieldCheck, X } from "lucide-react";
-import { moderationQueue } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import { Check, Film, ShieldCheck, X } from "lucide-react";
+import { setClipStatus, subscribeToPendingClips, type Clip } from "@/lib/clips";
 
 export default function ModerationPage() {
-  const [queue, setQueue] = useState([...moderationQueue]);
+  const [queue, setQueue] = useState<Clip[]>([]);
+  const [loading, setLoading] = useState(true);
   const [resolved, setResolved] = useState<{ title: string; action: "Approved" | "Rejected" }[]>([]);
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
 
-  const resolve = (id: string, action: "Approved" | "Rejected") => {
-    const item = queue.find((q) => q.id === id);
-    if (!item) return;
-    setQueue((prev) => prev.filter((q) => q.id !== id));
-    setResolved((prev) => [{ title: item.title, action }, ...prev].slice(0, 5));
+  useEffect(() => {
+    const unsubscribe = subscribeToPendingClips((next) => {
+      setQueue(next);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const resolve = async (clip: Clip, action: "Approved" | "Rejected") => {
+    setBusy((b) => ({ ...b, [clip.id]: true }));
+    try {
+      await setClipStatus(clip.id, action === "Approved" ? "approved" : "rejected");
+      setResolved((prev) => [{ title: clip.title, action }, ...prev].slice(0, 5));
+    } finally {
+      setBusy((b) => ({ ...b, [clip.id]: false }));
+    }
   };
 
   return (
@@ -23,7 +35,11 @@ export default function ModerationPage() {
         Review clips submitted by creators before they go live.
       </p>
 
-      {queue.length === 0 ? (
+      {loading ? (
+        <div className="mt-6 flex items-center justify-center py-16">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500 dark:border-white/10 dark:border-t-yellow-400" />
+        </div>
+      ) : queue.length === 0 ? (
         <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center dark:border-white/10 dark:bg-[#111]">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400">
             <ShieldCheck className="h-6 w-6" />
@@ -37,36 +53,46 @@ export default function ModerationPage() {
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {queue.map((m) => (
+          {queue.map((clip) => (
             <div
-              key={m.id}
+              key={clip.id}
               className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm shadow-slate-100 dark:border-white/10 dark:bg-[#111] dark:shadow-none"
             >
-              <div className="relative aspect-video">
-                <Image
-                  src={`https://picsum.photos/seed/${m.imageSeed}/500/280`}
-                  alt=""
-                  fill
-                  sizes="(min-width: 640px) 45vw, 90vw"
-                  className="object-cover"
-                />
+              <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950">
+                {clip.videoUrl ? (
+                  <video src={clip.videoUrl} controls className="h-full w-full object-cover" />
+                ) : (
+                  <Film className="h-8 w-8 text-white/30" />
+                )}
               </div>
               <div className="p-4">
-                <p className="font-semibold text-slate-900 dark:text-white">{m.title}</p>
+                <p className="font-semibold text-slate-900 dark:text-white">{clip.title}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  by {m.author} · submitted {m.submitted}
+                  by {clip.creatorName} · {clip.category} · ${clip.price.toFixed(2)}
                 </p>
+                {clip.link && (
+                  <a
+                    href={clip.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 block truncate text-xs text-amber-600 hover:underline dark:text-yellow-400"
+                  >
+                    {clip.link}
+                  </a>
+                )}
                 <div className="mt-3 flex gap-2">
                   <button
-                    onClick={() => resolve(m.id, "Approved")}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+                    onClick={() => resolve(clip, "Approved")}
+                    disabled={busy[clip.id]}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-60"
                   >
                     <Check className="h-3.5 w-3.5" />
                     Approve
                   </button>
                   <button
-                    onClick={() => resolve(m.id, "Rejected")}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-50 py-2 text-xs font-semibold text-red-600 transition-transform duration-200 hover:scale-[1.02] active:scale-95 dark:bg-red-500/10 dark:text-red-400"
+                    onClick={() => resolve(clip, "Rejected")}
+                    disabled={busy[clip.id]}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-50 py-2 text-xs font-semibold text-red-600 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-60 dark:bg-red-500/10 dark:text-red-400"
                   >
                     <X className="h-3.5 w-3.5" />
                     Reject
