@@ -67,6 +67,22 @@ export const defaultPlatformSettings: PlatformSettings = {
 };
 
 const SETTINGS_DOC = doc(db, "settings", "platform");
+// Derived, non-secret subset of the settings above — safe for any signed-in user to
+// read. The full settings/platform doc (with provider secret keys) must stay
+// admin-only per Firestore rules; checkout flows read this doc instead.
+const PUBLIC_SETTINGS_DOC = doc(db, "settings", "public");
+
+export type PublicPlatformSettings = {
+  campaignProcessingFee: string;
+  minCampaignBudget: string;
+  liveProviders: ProviderId[];
+};
+
+const defaultPublicSettings: PublicPlatformSettings = {
+  campaignProcessingFee: defaultPlatformSettings.campaignProcessingFee,
+  minCampaignBudget: defaultPlatformSettings.minCampaignBudget,
+  liveProviders: [],
+};
 
 function normalize(raw: unknown): PlatformSettings {
   const parsed = (raw ?? {}) as Partial<PlatformSettings>;
@@ -104,6 +120,26 @@ export function subscribeToPlatformSettings(callback: (settings: PlatformSetting
 
 export async function savePlatformSettings(settings: PlatformSettings) {
   await setDoc(SETTINGS_DOC, settings, { merge: false });
+  const publicSettings: PublicPlatformSettings = {
+    campaignProcessingFee: settings.campaignProcessingFee,
+    minCampaignBudget: settings.minCampaignBudget,
+    liveProviders: getLiveProviders(settings),
+  };
+  await setDoc(PUBLIC_SETTINGS_DOC, publicSettings, { merge: false });
+}
+
+/**
+ * For non-admin checkout flows (Post a Campaign, clip licensing). Reads only the
+ * derived public doc — never touches provider secret keys.
+ */
+export async function getPublicSettings(): Promise<PublicPlatformSettings> {
+  try {
+    const snap = await getDoc(PUBLIC_SETTINGS_DOC);
+    return snap.exists() ? { ...defaultPublicSettings, ...(snap.data() as Partial<PublicPlatformSettings>) } : defaultPublicSettings;
+  } catch (error) {
+    console.error("Failed to load public settings:", error);
+    return defaultPublicSettings;
+  }
 }
 
 export function parseCurrency(value: string): number {

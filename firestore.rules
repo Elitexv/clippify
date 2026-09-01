@@ -1,0 +1,138 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function onlyChanged(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // --- users ---
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Signup can set any role except "admin" — that must only ever be
+      // granted directly in Firestore (see scripts/make-admin.mjs).
+      allow create: if isOwner(userId)
+        && request.resource.data.role != 'admin'
+        && (!('status' in request.resource.data) || request.resource.data.status == 'Active');
+
+      // A user can update their own profile but not their own role or
+      // suspension status — only an admin can change those.
+      allow update: if isAdmin() || (
+        isOwner(userId)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.get('status', 'Active') == resource.data.get('status', 'Active')
+      );
+
+      allow delete: if false;
+
+      match /favorites/{clipId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // --- clips ---
+    match /clips/{clipId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.creatorId == request.auth.uid
+        && request.resource.data.status == 'pending';
+
+      // Only admin moderation (approve/reject) can change a clip afterward.
+      allow update: if isAdmin() && onlyChanged(['status']);
+
+      allow delete: if false;
+    }
+
+    // --- campaigns ---
+    match /campaigns/{campaignId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.brandId == request.auth.uid);
+
+      allow create: if isSignedIn() && request.resource.data.brandId == request.auth.uid;
+
+      allow update: if isAdmin() || (isSignedIn() && resource.data.brandId == request.auth.uid);
+
+      allow delete: if false;
+    }
+
+    // --- competitions ---
+    match /competitions/{competitionId} {
+      allow read: if isSignedIn();
+
+      // Only admins create competitions (they pick the real hostId from
+      // the users collection — see admin/competitions).
+      allow create: if isAdmin();
+
+      // Admins can change anything. Any signed-in user may bump `entries`
+      // by exactly 1 as part of submitting an entry (see /submissions).
+      allow update: if isAdmin() || (
+        isSignedIn() && onlyChanged(['entries'])
+        && request.resource.data.entries == resource.data.entries + 1
+      );
+
+      allow delete: if false;
+    }
+
+    // --- submissions (competition entries) ---
+    match /submissions/{submissionId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.submittedByUid == request.auth.uid
+        && request.resource.data.status == 'Pending'
+        && request.resource.data.withdrawn == false;
+
+      allow update: if isAdmin()
+        || (
+          // The brand hosting the competition can approve/reject.
+          isSignedIn() && onlyChanged(['status'])
+          && get(/databases/$(database)/documents/competitions/$(resource.data.competitionId)).data.hostId == request.auth.uid
+        )
+        || (
+          // The streamer who submitted can withdraw their own entry.
+          isSignedIn() && resource.data.submittedByUid == request.auth.uid
+          && onlyChanged(['withdrawn']) && request.resource.data.withdrawn == true
+        );
+
+      allow delete: if false;
+    }
+
+    // --- orders (clip licenses) ---
+    match /orders/{orderId} {
+      allow read: if isSignedIn()
+        && (isAdmin() || resource.data.buyerId == request.auth.uid || resource.data.creatorId == request.auth.uid);
+
+      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
+
+      allow update, delete: if false;
+    }
+
+    // --- platform settings ---
+    // Full config, including payment-provider secret keys — admin only,
+    // never readable by a regular signed-in user.
+    match /settings/platform {
+      allow read, write: if isAdmin();
+    }
+
+    // Derived, non-secret subset (fees + which providers are live) that
+    // Post a Campaign / clip-license checkout read from.
+    match /settings/public {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

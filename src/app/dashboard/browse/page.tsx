@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Banknote, CreditCard, Film, Heart, Landmark, Loader2, Search, X } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { addFavorite, fetchFavoriteIds, removeFavorite, subscribeToApprovedClips, type Clip } from "@/lib/clips";
 import { createOrder } from "@/lib/orders";
 import {
-  defaultPlatformSettings,
-  getLiveProviders,
-  getPlatformSettings,
+  getPublicSettings,
   providerMeta,
-  type PlatformSettings,
+  type PublicPlatformSettings,
   type ProviderId,
 } from "@/lib/platform-settings";
+
+const defaultSettings: PublicPlatformSettings = {
+  campaignProcessingFee: "5",
+  minCampaignBudget: "50",
+  liveProviders: [],
+};
 
 const categories = ["All", "Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 
@@ -207,7 +211,7 @@ function LicenseCheckoutModal({
   buyerName: string;
   onClose: () => void;
 }) {
-  const [settings, setSettings] = useState<PlatformSettings>(defaultPlatformSettings);
+  const [settings, setSettings] = useState<PublicPlatformSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState<ProviderId | null>(null);
   const [paying, setPaying] = useState(false);
@@ -215,13 +219,13 @@ function LicenseCheckoutModal({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    getPlatformSettings().then((s) => {
+    getPublicSettings().then((s) => {
       setSettings(s);
       setLoading(false);
     });
   }, []);
 
-  const enabledMethods = useMemo(() => getLiveProviders(settings), [settings]);
+  const enabledMethods = settings.liveProviders;
   const method = selectedMethod ?? enabledMethods[0] ?? null;
 
   const handlePay = async () => {

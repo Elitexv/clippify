@@ -15,14 +15,18 @@ import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
 import {
-  defaultPlatformSettings,
-  getLiveProviders,
-  getPlatformSettings,
+  getPublicSettings,
   parseCurrency,
   providerMeta,
-  type PlatformSettings,
+  type PublicPlatformSettings,
   type ProviderId,
 } from "@/lib/platform-settings";
+
+const defaultSettings: PublicPlatformSettings = {
+  campaignProcessingFee: "5",
+  minCampaignBudget: "50",
+  liveProviders: [],
+};
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
@@ -57,15 +61,15 @@ function PostCampaignPageContent() {
 
   const [step, setStep] = useState<Step>("form");
 
-  const [settings, setSettings] = useState<PlatformSettings>(defaultPlatformSettings);
+  const [settings, setSettings] = useState<PublicPlatformSettings>(defaultSettings);
   const [settingsLoading, setSettingsLoading] = useState(true);
-  const enabledMethods = getLiveProviders(settings);
+  const enabledMethods = settings.liveProviders;
   const [selectedMethod, setSelectedMethod] = useState<ProviderId | null>(null);
   const method = selectedMethod ?? enabledMethods[0] ?? null;
   const [paying, setPaying] = useState(false);
 
   useEffect(() => {
-    getPlatformSettings().then((s) => {
+    getPublicSettings().then((s) => {
       setSettings(s);
       setSettingsLoading(false);
     });
