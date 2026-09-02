@@ -48,6 +48,36 @@ export const getInitials = (name: string) => {
   return chars.join("") || "?";
 };
 
+function getAuthErrorMessage(error: unknown): string {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code: unknown }).code)
+      : "";
+
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/user-not-found":
+    case "auth/wrong-password":
+      return "Incorrect email or password.";
+    case "auth/invalid-email":
+      return "That email address doesn't look right.";
+    case "auth/user-disabled":
+      return "This account has been disabled. Contact support for help.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Please wait a moment and try again.";
+    case "auth/email-already-in-use":
+      return "An account with this email already exists. Please sign in instead.";
+    case "auth/weak-password":
+      return "Please choose a stronger password (at least 6 characters).";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
+    case "auth/popup-closed-by-user":
+      return "Sign-in was cancelled.";
+    default:
+      return error instanceof Error ? error.message : "Something went wrong. Please try again.";
+  }
+}
+
 export async function createFirebaseUserProfile({
   uid,
   name,
@@ -90,20 +120,40 @@ export async function registerWithFirebase({
   password: string;
   role: AppRole;
 }) {
-  const methods = await fetchSignInMethodsForEmail(auth, email.trim());
+  let methods: string[];
+  try {
+    methods = await fetchSignInMethodsForEmail(auth, email.trim());
+  } catch (error) {
+    throw new Error(getAuthErrorMessage(error));
+  }
   if (methods.length > 0) {
     throw new Error("An account with this email already exists. Please sign in instead.");
   }
 
-  const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+  let credential;
+  try {
+    credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+  } catch (error) {
+    throw new Error(getAuthErrorMessage(error));
+  }
+
   const user = credential.user;
-  return createFirebaseUserProfile({
-    uid: user.uid,
-    name,
-    username,
-    email: email.trim(),
-    role,
-  });
+  try {
+    return await createFirebaseUserProfile({
+      uid: user.uid,
+      name,
+      username,
+      email: email.trim(),
+      role,
+    });
+  } catch {
+    // Auth account was created but the Firestore profile write failed (e.g. Firestore
+    // isn't provisioned yet). Don't leave the caller with a raw Firestore error — the
+    // next successful login will self-heal the missing profile via ensureUserProfile().
+    throw new Error(
+      "Your account was created, but we couldn't finish setting up your profile. Please try logging in — we'll finish setup automatically.",
+    );
+  }
 }
 
 export function createUserProfileFromFirebaseUser(firebaseUser: User, fallbackRole: AppRole = "creator"): AppUser {
@@ -134,16 +184,27 @@ export async function ensureUserProfile(firebaseUser: User, fallbackRole: AppRol
     if (snapshot.exists()) {
       return { id: snapshot.id, ...snapshot.data() } as AppUser;
     }
-  } catch {
-    // Firestore profile reads can fail while the client is offline; fall back to the
-    // authenticated user profile instead of surfacing the offline document error.
-  }
 
-  return createUserProfileFromFirebaseUser(firebaseUser, fallbackRole);
+    // Auth account exists but its profile doc was never written (e.g. Firestore was
+    // unreachable at signup time). Self-heal by persisting a fallback profile now so
+    // the account isn't permanently missing its Firestore doc.
+    const fallback = createUserProfileFromFirebaseUser(firebaseUser, fallbackRole);
+    await setDoc(doc(db, "users", firebaseUser.uid), fallback, { merge: true });
+    return fallback;
+  } catch {
+    // Firestore can still fail here (offline, still disabled, etc.) — fall back to the
+    // authenticated user profile instead of surfacing the raw Firestore error.
+    return createUserProfileFromFirebaseUser(firebaseUser, fallbackRole);
+  }
 }
 
 export async function loginWithFirebase(email: string, password: string) {
-  const credential = await signInWithEmailAndPassword(auth, email, password);
+  let credential;
+  try {
+    credential = await signInWithEmailAndPassword(auth, email, password);
+  } catch (error) {
+    throw new Error(getAuthErrorMessage(error));
+  }
   const profile = await ensureUserProfile(credential.user, "creator");
   if (profile.status === "Suspended") {
     await signOut(auth);
@@ -158,7 +219,12 @@ export async function signInWithOAuth(providerName: "google" | "apple") {
       ? new GoogleAuthProvider()
       : new OAuthProvider("apple.com");
 
-  const credential = await signInWithPopup(auth, provider);
+  let credential;
+  try {
+    credential = await signInWithPopup(auth, provider);
+  } catch (error) {
+    throw new Error(getAuthErrorMessage(error));
+  }
   return ensureUserProfile(credential.user, "creator");
 }
 
