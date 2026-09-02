@@ -20,9 +20,15 @@ import { useAuth } from "@/lib/auth/auth-context";
 import StatCard from "@/components/dashboard/StatCard";
 import ComingSoon from "@/components/dashboard/ComingSoon";
 import { fetchFavoriteIds, subscribeToApprovedClips, subscribeToClipsForUser, type Clip } from "@/lib/clips";
-import { subscribeToCompetitions, subscribeToSubmissionsForUser, type Competition } from "@/lib/competitions";
+import {
+  subscribeToCompetitions,
+  subscribeToSubmissionsForUser,
+  type Competition,
+  type CompetitionSubmission,
+} from "@/lib/competitions";
 import { subscribeToCampaignsForUser, type Campaign } from "@/lib/firebase-helpers";
 import { subscribeToOrdersForCreator, type Order } from "@/lib/orders";
+import { parseCurrency } from "@/lib/platform-settings";
 
 const roleLabel: Record<string, string> = {
   brand: "Brand",
@@ -48,7 +54,7 @@ function DashboardHomeContent() {
   const [myClips, setMyClips] = useState<Clip[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [mySubmissions, setMySubmissions] = useState<number>(0);
+  const [mySubmissions, setMySubmissions] = useState<CompetitionSubmission[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [favoriteCount, setFavoriteCount] = useState(0);
 
@@ -65,7 +71,7 @@ function DashboardHomeContent() {
     if (!user) return;
     const unsubMyClips = subscribeToClipsForUser(user.id, setMyClips);
     const unsubCampaigns = subscribeToCampaignsForUser(user.id, setCampaigns);
-    const unsubSubs = subscribeToSubmissionsForUser(user.id, (subs) => setMySubmissions(subs.length));
+    const unsubSubs = subscribeToSubmissionsForUser(user.id, setMySubmissions);
     const unsubOrders = subscribeToOrdersForCreator(user.id, setMyOrders);
     fetchFavoriteIds(user.id).then((ids) => setFavoriteCount(ids.size));
     return () => {
@@ -122,6 +128,13 @@ function DashboardHomeContent() {
 
   const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
   const clipEarnings = myOrders.reduce((sum, o) => sum + o.amount, 0);
+  const competitionWinnings = mySubmissions
+    .filter((s) => s.withdrawn)
+    .reduce((sum, s) => {
+      const comp = competitions.find((c) => c.id === s.competitionId);
+      return sum + parseCurrency(comp?.payout ?? "0");
+    }, 0);
+  const clippingBalance = clipEarnings + competitionWinnings;
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -202,9 +215,9 @@ function DashboardHomeContent() {
         )}
         <StatCard icon={Heart} label="Favorites" value={String(favoriteCount)} />
         {showCreator && (
-          <StatCard icon={DollarSign} label="Total Earnings" value={`$${clipEarnings.toFixed(2)}`} />
+          <StatCard icon={DollarSign} label="Clipping Balance" value={`$${clippingBalance.toFixed(2)}`} />
         )}
-        <StatCard icon={Trophy} label="Competitions Joined" value={String(mySubmissions)} />
+        <StatCard icon={Trophy} label="Competitions Joined" value={String(mySubmissions.length)} />
       </div>
 
       <SectionHeader title="Featured Clips" href="/dashboard/browse" />

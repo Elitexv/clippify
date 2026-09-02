@@ -11,7 +11,7 @@ import { parseCurrency } from "@/lib/platform-settings";
 
 export default function EarningsPage() {
   return (
-    <RequireAuth area="account">
+    <RequireAuth area="creator">
       <EarningsContent />
     </RequireAuth>
   );
@@ -47,11 +47,12 @@ function EarningsContent() {
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Earnings</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Track income from clip sales and competition winnings.
+        Your clipping balance from licensed clips, plus what you&apos;ve won and withdrawn from
+        competitions.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard icon={DollarSign} label="Total Earnings" value={`$${totalEarnings.toFixed(2)}`} />
+        <StatCard icon={DollarSign} label="Clipping Balance" value={`$${totalEarnings.toFixed(2)}`} />
         <StatCard icon={ShoppingBag} label="Clips Sold" value={String(orders.length)} />
         <StatCard icon={Trophy} label="Competition Winnings" value={`$${competitionWinnings.toFixed(2)}`} />
       </div>

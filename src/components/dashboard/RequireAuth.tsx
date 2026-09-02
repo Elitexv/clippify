@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { AppRole } from "@/lib/firebase-helpers";
 
-const roleAccessMap: Record<"admin" | "brand" | "account", AppRole[]> = {
+const roleAccessMap: Record<"admin" | "brand" | "creator" | "account", AppRole[]> = {
   admin: ["admin"],
   brand: ["brand", "both", "admin"],
+  creator: ["creator", "both", "admin"],
   account: ["brand", "creator", "both"],
 };
 
@@ -15,7 +16,7 @@ export default function RequireAuth({
   area,
   children,
 }: {
-  area: "admin" | "brand" | "account";
+  area: "admin" | "brand" | "creator" | "account";
   children: React.ReactNode;
 }) {
   const { user, isLoading } = useAuth();
@@ -30,12 +31,8 @@ export default function RequireAuth({
       router.replace("/login");
       return;
     }
-    if (area === "admin" && user.role !== "admin") {
-      router.replace("/dashboard");
-      return;
-    }
-    if (area === "brand" && !["brand", "both", "admin"].includes(user.role)) {
-      router.replace("/dashboard");
+    if (!roleAccessMap[area].includes(user.role)) {
+      router.replace(user.role === "admin" ? "/admin" : "/dashboard");
       return;
     }
     if (area === "account" && user.role === "admin") {
