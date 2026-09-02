@@ -46,7 +46,10 @@ export default function DashboardShell({
     area === "account"
       ? accountCreateItems.filter((item) => isNavItemVisible(item, user.role))
       : [];
-  const mobileNavItems = area === "admin" ? adminMobileNavItems : accountMobileNavItems;
+  const mobileNavItems =
+    area === "admin"
+      ? adminMobileNavItems
+      : accountMobileNavItems.filter((item) => isNavItemVisible(item, user.role));
 
   const handleLogout = () => {
     logout();
@@ -136,9 +139,9 @@ export default function DashboardShell({
           </div>
 
           <div className="flex items-center gap-3">
-            {area === "account" && (
+            {area === "account" && createItems.length > 0 && (
               <Link
-                href="/dashboard/upload"
+                href={createItems[0].href}
                 className="hidden items-center gap-1.5 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-3 py-1.5 text-xs font-semibold text-black shadow-sm shadow-yellow-500/30 transition-transform duration-200 hover:scale-105 sm:flex"
               >
                 <Plus className="h-3.5 w-3.5" />

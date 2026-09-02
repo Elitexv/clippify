@@ -2,12 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
-import { subscribeToAllUsers, setUserStatus, type AppUser } from "@/lib/firebase-helpers";
+import { useAuth } from "@/lib/auth/auth-context";
+import {
+  subscribeToAllUsers,
+  setUserStatus,
+  setUserRole,
+  type AppUser,
+  type AppRole,
+} from "@/lib/firebase-helpers";
+
+const roleOptions: AppRole[] = ["creator", "brand", "both", "admin"];
+
+const roleFilters: { label: string; value: "all" | AppRole }[] = [
+  { label: "All", value: "all" },
+  { label: "Brands", value: "brand" },
+  { label: "Creators", value: "creator" },
+  { label: "Both", value: "both" },
+  { label: "Admins", value: "admin" },
+];
 
 export default function AdminUsersPage() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | AppRole>("all");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -20,8 +39,9 @@ export default function AdminUsersPage() {
 
   const filtered = users.filter(
     (u) =>
-      u.name.toLowerCase().includes(query.toLowerCase()) ||
-      u.email.toLowerCase().includes(query.toLowerCase())
+      (roleFilter === "all" || u.role === roleFilter) &&
+      (u.name.toLowerCase().includes(query.toLowerCase()) ||
+        u.email.toLowerCase().includes(query.toLowerCase()))
   );
 
   const toggleStatus = async (u: AppUser) => {
@@ -34,6 +54,17 @@ export default function AdminUsersPage() {
     }
   };
 
+  const changeRole = async (u: AppUser, role: AppRole) => {
+    if (role === u.role) return;
+    if (role === "admin" && !confirm(`Grant admin access to ${u.name} (${u.email})?`)) return;
+    setBusy((b) => ({ ...b, [u.id]: true }));
+    try {
+      await setUserRole(u.id, role);
+    } finally {
+      setBusy((b) => ({ ...b, [u.id]: false }));
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Users</h1>
@@ -41,15 +72,34 @@ export default function AdminUsersPage() {
         {loading ? "Loading…" : `${users.length} registered accounts across brands and creators.`}
       </p>
 
-      <div className="relative mt-5 max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search users..."
-          className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-[#111] dark:text-white"
-        />
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search users..."
+            className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-[#111] dark:text-white"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {roleFilters.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setRoleFilter(f.value)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                roleFilter === f.value
+                  ? "bg-amber-500 text-black"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -80,8 +130,20 @@ export default function AdminUsersPage() {
                     <td className="whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400">
                       {u.email}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 capitalize text-slate-600 dark:text-slate-300">
-                      {u.role}
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <select
+                        value={u.role}
+                        onChange={(e) => changeRole(u, e.target.value as AppRole)}
+                        disabled={busy[u.id] || u.id === currentUser?.id}
+                        title={u.id === currentUser?.id ? "You can't change your own role here." : undefined}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium capitalize text-slate-700 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60 dark:border-white/10 dark:bg-[#0a0a0a] dark:text-slate-200"
+                      >
+                        {roleOptions.map((r) => (
+                          <option key={r} value={r} className="capitalize">
+                            {r}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="hidden whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400 sm:table-cell">
                       {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}

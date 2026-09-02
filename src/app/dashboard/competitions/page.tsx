@@ -19,7 +19,7 @@ const inputClass =
 
 export default function CompetitionsPage() {
   return (
-    <RequireAuth area="account">
+    <RequireAuth area="creator">
       <CompetitionsContent />
     </RequireAuth>
   );

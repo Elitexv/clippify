@@ -23,7 +23,7 @@ type Mode = "link" | "file";
 
 export default function UploadPage() {
   return (
-    <RequireAuth area="account">
+    <RequireAuth area="creator">
       <UploadPageContent />
     </RequireAuth>
   );
