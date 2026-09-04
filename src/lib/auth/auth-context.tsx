@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -37,8 +38,8 @@ type AuthState = {
     password: string;
     role: Exclude<AppRole, "admin">;
   }) => Promise<AppUser>;
-  signInWithGoogle: () => Promise<LoginResult>;
-  signInWithApple: () => Promise<LoginResult>;
+  signInWithGoogle: (role?: Exclude<AppRole, "admin">) => Promise<LoginResult>;
+  signInWithApple: (role?: Exclude<AppRole, "admin">) => Promise<LoginResult>;
   logout: () => Promise<void>;
   getDashboardRoute: (role?: AppRole | null) => string;
 };
@@ -48,9 +49,19 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Tracks the uid of the most recent profile we know for certain is real (read or
+  // written directly against Firestore), so a late-arriving "no profile doc yet"
+  // event from the background listener — expected right after signup, before its
+  // write has landed — can't clobber it back to a default role. See subscribeToAuth().
+  const realProfileUidRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuth((nextUser) => {
+    const unsubscribe = subscribeToAuth((nextUser, firebaseUser, isSynthetic) => {
+      if (isSynthetic && firebaseUser && realProfileUidRef.current === firebaseUser.uid) {
+        setIsLoading(false);
+        return;
+      }
+      realProfileUidRef.current = !isSynthetic && firebaseUser ? firebaseUser.uid : null;
       setUser(nextUser);
       setIsLoading(false);
     });
@@ -64,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!nextUser) {
         return { ok: false, error: "No account found for this email." };
       }
+      realProfileUidRef.current = nextUser.id;
       setUser(nextUser);
       return { ok: true, user: nextUser };
     } catch (error: unknown) {
@@ -82,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         role,
       });
+      realProfileUidRef.current = nextUser.id;
       setUser(nextUser);
       return nextUser;
     } catch (error: unknown) {
@@ -90,9 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithGoogle = async (): Promise<LoginResult> => {
+  const signInWithGoogle = async (role: Exclude<AppRole, "admin"> = "creator"): Promise<LoginResult> => {
     try {
-      const nextUser = await signInWithOAuth("google");
+      const nextUser = await signInWithOAuth("google", role);
+      realProfileUidRef.current = nextUser.id;
       setUser(nextUser);
       return { ok: true, user: nextUser };
     } catch (error: unknown) {
@@ -101,9 +115,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithApple = async (): Promise<LoginResult> => {
+  const signInWithApple = async (role: Exclude<AppRole, "admin"> = "creator"): Promise<LoginResult> => {
     try {
-      const nextUser = await signInWithOAuth("apple");
+      const nextUser = await signInWithOAuth("apple", role);
+      realProfileUidRef.current = nextUser.id;
       setUser(nextUser);
       return { ok: true, user: nextUser };
     } catch (error: unknown) {
@@ -114,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await logoutFromFirebase();
+    realProfileUidRef.current = null;
     setUser(null);
   };
 

@@ -83,20 +83,20 @@ export default function SignupForm() {
         <OAuthButtons
           emailLabel="Continue with Email"
           onGoogle={async () => {
-            const result = await signInWithGoogle();
+            const result = await signInWithGoogle(role);
             if (!result.ok) {
               alert(result.error);
               return;
             }
-            router.push(result.user.role === "admin" ? "/admin" : "/dashboard");
+            router.push(getDashboardRouteForRole(result.user.role));
           }}
           onApple={async () => {
-            const result = await signInWithApple();
+            const result = await signInWithApple(role);
             if (!result.ok) {
               alert(result.error);
               return;
             }
-            router.push(result.user.role === "admin" ? "/admin" : "/dashboard");
+            router.push(getDashboardRouteForRole(result.user.role));
           }}
         />
       </div>

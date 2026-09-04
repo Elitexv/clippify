@@ -213,7 +213,7 @@ export async function loginWithFirebase(email: string, password: string) {
   return profile;
 }
 
-export async function signInWithOAuth(providerName: "google" | "apple") {
+export async function signInWithOAuth(providerName: "google" | "apple", role: AppRole = "creator") {
   const provider =
     providerName === "google"
       ? new GoogleAuthProvider()
@@ -225,7 +225,9 @@ export async function signInWithOAuth(providerName: "google" | "apple") {
   } catch (error) {
     throw new Error(getAuthErrorMessage(error));
   }
-  return ensureUserProfile(credential.user, "creator");
+  // `role` only takes effect for a brand-new account (ensureUserProfile only uses the
+  // fallback role when no profile doc exists yet) — a returning user keeps their real role.
+  return ensureUserProfile(credential.user, role);
 }
 
 export async function logoutFromFirebase() {
@@ -265,7 +267,17 @@ export function subscribeToCampaignsForUser(userId: string, callback: (campaigns
   );
 }
 
-export function subscribeToAuth(callback: (user: AppUser | null, firebaseUser: User | null) => void) {
+// `isSynthetic: true` means this profile is a guessed default (role defaults to
+// "creator"), not one actually read from Firestore — either because the profile doc
+// hasn't been read yet, or because it doesn't exist. A caller that already has a real
+// (non-synthetic) profile for the same uid — e.g. from a register()/login() call that
+// just awaited the Firestore write/read directly — should ignore a synthetic update
+// for that uid rather than let it clobber the real role. This matters right after
+// signup: the profile doc write and this listener's first "doc doesn't exist yet"
+// snapshot are two independent in-flight requests with no guaranteed ordering.
+export function subscribeToAuth(
+  callback: (user: AppUser | null, firebaseUser: User | null, isSynthetic: boolean) => void,
+) {
   let profileUnsubscribe: (() => void) | undefined;
 
   const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -275,14 +287,18 @@ export function subscribeToAuth(callback: (user: AppUser | null, firebaseUser: U
     }
 
     if (!firebaseUser) {
-      callback(null, null);
+      callback(null, null, false);
       return;
     }
 
-    callback(createUserProfileFromFirebaseUser(firebaseUser, "creator"), firebaseUser);
+    callback(createUserProfileFromFirebaseUser(firebaseUser, "creator"), firebaseUser, true);
 
     profileUnsubscribe = subscribeToUserProfile(firebaseUser.uid, (userProfile) => {
-      callback(userProfile ?? createUserProfileFromFirebaseUser(firebaseUser, "creator"), firebaseUser);
+      if (userProfile) {
+        callback(userProfile, firebaseUser, false);
+      } else {
+        callback(createUserProfileFromFirebaseUser(firebaseUser, "creator"), firebaseUser, true);
+      }
     });
   });
 
