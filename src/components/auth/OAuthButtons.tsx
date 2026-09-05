@@ -1,30 +1,24 @@
-import { Mail } from "lucide-react";
-
 const buttonClass =
-  "flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10";
+  "flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10";
 
 export default function OAuthButtons({
-  emailLabel,
   onGoogle,
   onApple,
+  disabled,
 }: {
-  emailLabel: string;
   onGoogle?: () => void | Promise<void>;
   onApple?: () => void | Promise<void>;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <button type="button" className={buttonClass} onClick={() => void onGoogle?.()}>
+      <button type="button" className={buttonClass} disabled={disabled} onClick={() => void onGoogle?.()}>
         <GoogleIcon className="h-4 w-4" />
         Continue with Google
       </button>
-      <button type="button" className={buttonClass} onClick={() => void onApple?.()}>
+      <button type="button" className={buttonClass} disabled={disabled} onClick={() => void onApple?.()}>
         <AppleIcon className="h-4 w-4" />
         Continue with Apple
-      </button>
-      <button type="button" className={buttonClass}>
-        <Mail className="h-4 w-4" />
-        {emailLabel}
       </button>
     </div>
   );

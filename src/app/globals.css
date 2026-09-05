@@ -118,6 +118,22 @@ body {
   animation: shimmer 1.8s ease-in-out infinite;
 }
 
+@keyframes loader-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(60%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.animate-loader-bar {
+  animation: loader-bar 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
 /* Scroll-reveal: hidden until JS adds .is-visible (Reveal component) */
 .reveal {
   opacity: 0;
@@ -137,6 +153,7 @@ body {
   .animate-drift,
   .animate-marquee,
   .animate-shimmer,
+  .animate-loader-bar,
   .animate-ping,
   .animate-pulse,
   .animate-bounce,

@@ -3,71 +3,148 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AtSign, Briefcase, Clapperboard, Mail, Users } from "lucide-react";
+import { ArrowLeft, AtSign, Briefcase, Clapperboard, Loader2, Mail } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
-
-const getDashboardRouteForRole = (role: (typeof roles)[number]["id"] | "admin") => {
-  if (role === "admin") return "/admin";
-  if (role === "brand" || role === "both") return "/dashboard?view=brand";
-  return "/dashboard?view=creator";
-};
 
 const roles = [
   {
     id: "brand",
     label: "Brand",
     icon: Briefcase,
-    text: "I want to hire streamers or run a clipping competition",
+    text: "Hire streamers, post campaigns, and run clipping competitions",
   },
   {
     id: "creator",
     label: "Creator",
     icon: Clapperboard,
-    text: "I want to sell clips or join competitions",
-  },
-  {
-    id: "both",
-    label: "Both",
-    icon: Users,
-    text: "I want to hire and create",
+    text: "Sell clips, join competitions, and earn from your content",
   },
 ] as const;
 
+type RoleId = (typeof roles)[number]["id"];
+
 export default function SignupForm() {
-  const { register, signInWithGoogle, signInWithApple } = useAuth();
+  const { register, signInWithGoogle, signInWithApple, getDashboardRoute } = useAuth();
   const router = useRouter();
 
-  const [role, setRole] = useState<(typeof roles)[number]["id"]>("creator");
+  const [step, setStep] = useState<"role" | "details">("role");
+  const [role, setRole] = useState<RoleId | null>(null);
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [oauthBusy, setOauthBusy] = useState(false);
+
+  const chooseRole = (id: RoleId) => {
+    setRole(id);
+    setError("");
+    setStep("details");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreed || !fullName.trim() || !email.trim() || !password) return;
+    if (!role || !agreed || !fullName.trim() || !email.trim() || !password || submitting) return;
 
+    setSubmitting(true);
+    setError("");
     try {
-      await register({
+      const user = await register({
         name: fullName.trim(),
         username: username.trim(),
         email: email.trim(),
         password,
         role,
       });
-      router.push(getDashboardRouteForRole(role));
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Account creation failed.");
+      router.push(getDashboardRoute(user.role));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Account creation failed.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const handleOAuth = async (provider: "google" | "apple") => {
+    if (!role || oauthBusy) return;
+    setOauthBusy(true);
+    setError("");
+    try {
+      const signIn = provider === "google" ? signInWithGoogle : signInWithApple;
+      const result = await signIn(role);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.push(getDashboardRoute(result.user.role));
+    } finally {
+      setOauthBusy(false);
+    }
+  };
+
+  if (step === "role" || !role) {
+    return (
+      <div className="animate-fade-in-up">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
+          How will you use Clippifi?
+        </h1>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-amber-600 hover:text-amber-700 dark:text-yellow-400 dark:hover:text-yellow-300"
+          >
+            Log in
+          </Link>
+        </p>
+
+        <div className="mt-6 flex flex-col gap-4">
+          {roles.map(({ id, label, icon: Icon, text }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => chooseRole(id)}
+              className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10 dark:border-white/10 dark:bg-white/5 dark:hover:border-yellow-400"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-yellow-100 text-black dark:bg-yellow-400/10 dark:text-yellow-400">
+                <Icon className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block font-semibold text-slate-900 dark:text-white">
+                  {label}
+                </span>
+                <span className="mt-0.5 block text-sm text-slate-500 dark:text-slate-400">
+                  {text}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const roleMeta = roles.find((r) => r.id === role)!;
+
   return (
     <div className="animate-fade-in-up">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
-        Create your account
+      <button
+        type="button"
+        onClick={() => {
+          setStep("role");
+          setError("");
+        }}
+        className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back
+      </button>
+
+      <h1 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
+        Create your {roleMeta.label.toLowerCase()} account
       </h1>
       <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
         Already have an account?{" "}
@@ -81,23 +158,9 @@ export default function SignupForm() {
 
       <div className="mt-6">
         <OAuthButtons
-          emailLabel="Continue with Email"
-          onGoogle={async () => {
-            const result = await signInWithGoogle(role);
-            if (!result.ok) {
-              alert(result.error);
-              return;
-            }
-            router.push(getDashboardRouteForRole(result.user.role));
-          }}
-          onApple={async () => {
-            const result = await signInWithApple(role);
-            if (!result.ok) {
-              alert(result.error);
-              return;
-            }
-            router.push(getDashboardRouteForRole(result.user.role));
-          }}
+          disabled={oauthBusy}
+          onGoogle={() => handleOAuth("google")}
+          onApple={() => handleOAuth("apple")}
         />
       </div>
 
@@ -174,40 +237,9 @@ export default function SignupForm() {
           onChange={setPassword}
         />
 
-        <div>
-          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            I am a...
-          </p>
-          <div className="mt-2 grid grid-cols-3 gap-3">
-            {roles.map(({ id, label, icon: Icon, text }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setRole(id)}
-                aria-pressed={role === id}
-                className={`rounded-xl border p-3 text-center transition-all duration-200 ${
-                  role === id
-                    ? "border-amber-400 bg-yellow-50 shadow-sm dark:border-yellow-400 dark:bg-yellow-400/10"
-                    : "border-slate-200 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20"
-                }`}
-              >
-                <Icon
-                  className={`mx-auto h-5 w-5 ${
-                    role === id
-                      ? "text-amber-600 dark:text-yellow-400"
-                      : "text-slate-400"
-                  }`}
-                />
-                <p className="mt-1.5 text-xs font-semibold text-slate-900 dark:text-white">
-                  {label}
-                </p>
-                <p className="mt-0.5 hidden text-[10px] leading-tight text-slate-500 dark:text-slate-400 sm:block">
-                  {text}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
+        {error && (
+          <p className="-mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+        )}
 
         <label className="flex select-none items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
           <input
@@ -230,9 +262,10 @@ export default function SignupForm() {
 
         <button
           type="submit"
-          disabled={!agreed}
-          className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-lg shadow-yellow-500/30 transition-transform duration-200 hover:scale-[1.02] hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+          disabled={!agreed || submitting}
+          className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-lg shadow-yellow-500/30 transition-transform duration-200 hover:scale-[1.02] hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
         >
+          {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           Create account
         </button>
       </form>

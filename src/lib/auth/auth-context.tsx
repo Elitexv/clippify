@@ -8,10 +8,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import AppLoader from "@/components/AppLoader";
 import {
   loginWithFirebase,
   logoutFromFirebase,
   registerWithFirebase,
+  requestPasswordReset,
   signInWithOAuth,
   subscribeToAuth,
   type AppUser,
@@ -42,6 +44,7 @@ type AuthState = {
   signInWithApple: (role?: Exclude<AppRole, "admin">) => Promise<LoginResult>;
   logout: () => Promise<void>;
   getDashboardRoute: (role?: AppRole | null) => string;
+  sendPasswordReset: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -135,11 +138,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const getDashboardRoute = (role?: AppRole | null) => getDashboardRouteForRole(role ?? user?.role ?? null);
 
+  const sendPasswordReset = async (email: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    try {
+      await requestPasswordReset(email.trim());
+      return { ok: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Couldn't send reset email.";
+      return { ok: false, error: message };
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, login, register, signInWithGoogle, signInWithApple, logout, getDashboardRoute }}
+      value={{
+        user,
+        isLoading,
+        login,
+        register,
+        signInWithGoogle,
+        signInWithApple,
+        logout,
+        getDashboardRoute,
+        sendPasswordReset,
+      }}
     >
-      {children}
+      {isLoading ? <AppLoader /> : children}
     </AuthContext.Provider>
   );
 }

@@ -15,6 +15,7 @@ import {
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   signInWithPopup,
@@ -48,6 +49,8 @@ export const getInitials = (name: string) => {
   return chars.join("") || "?";
 };
 
+export const AUTH_NO_SUCH_ACCOUNT_MESSAGE = "Incorrect email or password.";
+
 function getAuthErrorMessage(error: unknown): string {
   const code =
     typeof error === "object" && error !== null && "code" in error
@@ -58,7 +61,7 @@ function getAuthErrorMessage(error: unknown): string {
     case "auth/invalid-credential":
     case "auth/user-not-found":
     case "auth/wrong-password":
-      return "Incorrect email or password.";
+      return AUTH_NO_SUCH_ACCOUNT_MESSAGE;
     case "auth/invalid-email":
       return "That email address doesn't look right.";
     case "auth/user-disabled":
@@ -232,6 +235,14 @@ export async function signInWithOAuth(providerName: "google" | "apple", role: Ap
 
 export async function logoutFromFirebase() {
   await signOut(auth);
+}
+
+export async function requestPasswordReset(email: string) {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    throw new Error(getAuthErrorMessage(error));
+  }
 }
 
 export function subscribeToUserProfile(uid: string, callback: (user: AppUser | null) => void) {
