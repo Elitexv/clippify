@@ -10,6 +10,7 @@ import {
   Link2,
   Loader2,
   X,
+  Zap,
 } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -34,7 +35,8 @@ const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
 const providerIcon: Record<ProviderId, typeof CreditCard> = {
   stripe: CreditCard,
-  paypal: Banknote,
+  flutterwave: Zap,
+  paystack: Banknote,
   bank: Landmark,
 };
 

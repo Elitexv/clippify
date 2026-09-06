@@ -87,6 +87,10 @@ export async function updateCompetitionStatus(id: string, status: CompetitionSta
   await updateDoc(doc(db, "competitions", id), { status });
 }
 
+export async function updateCompetitionPayout(id: string, payout: string) {
+  await updateDoc(doc(db, "competitions", id), { payout });
+}
+
 // --- Submissions (entries streamers submit to a competition) ---
 
 export type SubmissionStatus = "Pending" | "Approved" | "Rejected";

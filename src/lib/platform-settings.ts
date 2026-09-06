@@ -1,7 +1,7 @@
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-export type ProviderId = "stripe" | "paypal" | "bank";
+export type ProviderId = "stripe" | "flutterwave" | "paystack" | "bank";
 
 export type ProviderConfig = {
   enabled: boolean;
@@ -28,7 +28,8 @@ export type KeyField = {
 
 export const providerMeta: Record<ProviderId, { name: string; description: string }> = {
   stripe: { name: "Stripe", description: "Card payments via Stripe Checkout." },
-  paypal: { name: "PayPal", description: "PayPal and Venmo payments." },
+  flutterwave: { name: "Flutterwave", description: "Cards, mobile money, and bank transfers via Flutterwave." },
+  paystack: { name: "Paystack", description: "Cards and bank transfers via Paystack." },
   bank: { name: "Bank transfer", description: "Manual ACH / wire transfer details." },
 };
 
@@ -38,9 +39,14 @@ export const providerFieldSchemas: Record<ProviderId, KeyField[]> = {
     { key: "secretKey", label: "Secret key", placeholder: "sk_live_…", secret: true },
     { key: "webhookSecret", label: "Webhook signing secret", placeholder: "whsec_…", secret: true },
   ],
-  paypal: [
-    { key: "clientId", label: "Client ID", placeholder: "AZDx2…" },
-    { key: "clientSecret", label: "Client secret", placeholder: "EOxy9…", secret: true },
+  flutterwave: [
+    { key: "publicKey", label: "Public key", placeholder: "FLWPUBK-…" },
+    { key: "secretKey", label: "Secret key", placeholder: "FLWSECK-…", secret: true },
+    { key: "webhookSecretHash", label: "Webhook secret hash", placeholder: "Your configured hash", secret: true },
+  ],
+  paystack: [
+    { key: "publicKey", label: "Public key", placeholder: "pk_live_…" },
+    { key: "secretKey", label: "Secret key", placeholder: "sk_live_…", secret: true },
   ],
   bank: [
     { key: "accountName", label: "Account holder name", placeholder: "Clippifi Inc." },
@@ -61,7 +67,8 @@ export const defaultPlatformSettings: PlatformSettings = {
   minCampaignBudget: "50",
   paymentProviders: {
     stripe: emptyProvider(),
-    paypal: emptyProvider(),
+    flutterwave: emptyProvider(),
+    paystack: emptyProvider(),
     bank: emptyProvider(),
   },
 };
@@ -91,7 +98,8 @@ function normalize(raw: unknown): PlatformSettings {
     ...parsed,
     paymentProviders: {
       stripe: { ...emptyProvider(), ...parsed.paymentProviders?.stripe },
-      paypal: { ...emptyProvider(), ...parsed.paymentProviders?.paypal },
+      flutterwave: { ...emptyProvider(), ...parsed.paymentProviders?.flutterwave },
+      paystack: { ...emptyProvider(), ...parsed.paymentProviders?.paystack },
       bank: { ...emptyProvider(), ...parsed.paymentProviders?.bank },
     },
   };

@@ -7,6 +7,7 @@ import {
   createCompetition,
   subscribeToAllSubmissions,
   subscribeToCompetitions,
+  updateCompetitionPayout,
   updateCompetitionStatus,
   updateSubmissionStatus,
   type Competition,
@@ -38,9 +39,11 @@ export default function AdminCompetitionsPage() {
   const [title, setTitle] = useState("");
   const [hostId, setHostId] = useState("");
   const [prize, setPrize] = useState("");
+  const [payout, setPayout] = useState("");
   const [endsIn, setEndsIn] = useState("");
   const [creating, setCreating] = useState(false);
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
+  const [payoutDrafts, setPayoutDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubComps = subscribeToCompetitions((next) => {
@@ -90,16 +93,29 @@ export default function AdminCompetitionsPage() {
         hostName: host.name,
         title: title.trim(),
         prize: prize.trim(),
+        payout: payout.trim(),
         endsIn: endsIn.trim(),
         status: "Draft",
       });
       setTitle("");
       setHostId("");
       setPrize("");
+      setPayout("");
       setEndsIn("");
       setShowForm(false);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const savePayout = async (comp: Competition) => {
+    const draft = (payoutDrafts[comp.id] ?? comp.payout).trim();
+    if (draft === comp.payout) return;
+    setRowBusy((b) => ({ ...b, [comp.id]: true }));
+    try {
+      await updateCompetitionPayout(comp.id, draft);
+    } finally {
+      setRowBusy((b) => ({ ...b, [comp.id]: false }));
     }
   };
 
@@ -158,6 +174,15 @@ export default function AdminCompetitionsPage() {
             />
           </div>
           <div>
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Payout per winner</label>
+            <input
+              value={payout}
+              onChange={(e) => setPayout(e.target.value)}
+              placeholder="e.g. $500"
+              className={inputClass}
+            />
+          </div>
+          <div>
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Ends in</label>
             <input
               value={endsIn}
@@ -195,6 +220,7 @@ export default function AdminCompetitionsPage() {
                 <th className="px-4 py-3 font-medium">Campaign</th>
                 <th className="hidden px-4 py-3 font-medium sm:table-cell">Host</th>
                 <th className="px-4 py-3 font-medium">Prize</th>
+                <th className="px-4 py-3 font-medium">Payout per winner</th>
                 <th className="hidden px-4 py-3 font-medium sm:table-cell">Entries</th>
                 <th className="px-4 py-3 font-medium">Status</th>
               </tr>
@@ -212,6 +238,16 @@ export default function AdminCompetitionsPage() {
                     {c.hostName}
                   </td>
                   <td className="px-4 py-3 font-semibold text-amber-600 dark:text-yellow-400">{c.prize}</td>
+                  <td className="px-4 py-3">
+                    <input
+                      value={payoutDrafts[c.id] ?? c.payout}
+                      onChange={(e) => setPayoutDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
+                      onBlur={() => savePayout(c)}
+                      disabled={rowBusy[c.id]}
+                      placeholder="e.g. $500"
+                      className="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    />
+                  </td>
                   <td className="hidden px-4 py-3 text-slate-500 dark:text-slate-400 sm:table-cell">
                     {c.entries}
                   </td>

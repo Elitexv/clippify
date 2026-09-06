@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Banknote, Check, CreditCard, Eye, EyeOff, KeyRound, Landmark, ShieldAlert } from "lucide-react";
+import { Banknote, Check, CreditCard, Eye, EyeOff, KeyRound, Landmark, ShieldAlert, Zap } from "lucide-react";
 import {
   defaultPlatformSettings,
   getPlatformSettings,
@@ -20,7 +20,8 @@ const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
 const providerIcon: Record<ProviderId, typeof CreditCard> = {
   stripe: CreditCard,
-  paypal: Banknote,
+  flutterwave: Zap,
+  paystack: Banknote,
   bank: Landmark,
 };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Banknote, CreditCard, Film, Heart, Landmark, Loader2, Search, X } from "lucide-react";
+import { Banknote, CreditCard, Film, Heart, Landmark, Loader2, Search, X, Zap } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { addFavorite, fetchFavoriteIds, removeFavorite, subscribeToApprovedClips, type Clip } from "@/lib/clips";
@@ -23,7 +23,8 @@ const categories = ["All", "Tech", "Sports", "Motivation", "Nature", "Gaming", "
 
 const providerIcon: Record<ProviderId, typeof CreditCard> = {
   stripe: CreditCard,
-  paypal: Banknote,
+  flutterwave: Zap,
+  paystack: Banknote,
   bank: Landmark,
 };
 
