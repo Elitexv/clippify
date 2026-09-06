@@ -33,7 +33,7 @@ export const accountNavItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Browse Clips", href: "/dashboard/browse", icon: Search },
   { label: "Hire Streamers", href: "/dashboard/hire", icon: Users, roles: ["brand"] },
-  { label: "Competitions", href: "/dashboard/competitions", icon: Trophy, roles: ["creator"] },
+  { label: "Campaigns", href: "/dashboard/competitions", icon: Trophy, roles: ["creator"] },
   { label: "My Campaigns", href: "/dashboard/campaigns", icon: ClipboardList, roles: ["brand"] },
   { label: "Hosted Events", href: "/dashboard/hosted-events", icon: Megaphone, roles: ["brand"] },
   { label: "My Orders", href: "/dashboard/orders", icon: ShoppingBag, roles: ["brand"] },
@@ -49,20 +49,20 @@ export const accountCreateItems: NavItem[] = [
 export const accountMobileNavItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Browse", href: "/dashboard/browse", icon: Search },
-  { label: "Compete", href: "/dashboard/competitions", icon: Trophy, roles: ["creator"] },
+  { label: "Campaigns", href: "/dashboard/competitions", icon: Trophy, roles: ["creator"] },
 ];
 
 export const adminMobileNavItems: NavItem[] = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: UserCog },
-  { label: "Competitions", href: "/admin/competitions", icon: Trophy },
+  { label: "Campaigns", href: "/admin/competitions", icon: Trophy },
   { label: "Moderation", href: "/admin/moderation", icon: ShieldCheck },
 ];
 
 export const adminNavItems: NavItem[] = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: UserCog },
-  { label: "Competitions", href: "/admin/competitions", icon: Trophy },
+  { label: "Campaigns", href: "/admin/competitions", icon: Trophy },
   { label: "Moderation", href: "/admin/moderation", icon: ShieldCheck },
   { label: "Payouts", href: "/admin/payouts", icon: Wallet },
   { label: "Manage Payments", href: "/admin/manage-payments", icon: KeyRound },

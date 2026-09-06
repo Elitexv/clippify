@@ -2,7 +2,7 @@ import { Quote, ShoppingBag, Trophy, Users } from "lucide-react";
 
 const stats = [
   { icon: Users, value: "10K+", label: "Talented creators" },
-  { icon: Trophy, value: "500+", label: "Competitions hosted" },
+  { icon: Trophy, value: "500+", label: "Campaigns hosted" },
   { icon: ShoppingBag, value: "250K+", label: "Clips delivered" },
 ];
 

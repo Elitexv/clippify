@@ -43,13 +43,13 @@ export default function AdminOverviewPage() {
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Admin Overview</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Platform health across users, competitions, and content.
+        Platform health across users, campaigns, and content.
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={Users} label="Total Users" value={String(users.length)} />
         <StatCard icon={Wallet} label="Clip Sales Volume" value={`$${revenue.toFixed(2)}`} />
-        <StatCard icon={Trophy} label="Active Competitions" value={String(activeCompetitions.length)} />
+        <StatCard icon={Trophy} label="Active Campaigns" value={String(activeCompetitions.length)} />
         <StatCard icon={ShieldAlert} label="Pending Moderation" value={String(pendingClips.length)} />
       </div>
 
@@ -95,9 +95,9 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      <SectionHeader title="Active Competitions" href="/admin/competitions" />
+      <SectionHeader title="Active Campaigns" href="/admin/competitions" />
       {activeCompetitions.length === 0 ? (
-        <ComingSoon icon={Trophy} title="No active competitions" text="Create one from the Competitions page." />
+        <ComingSoon icon={Trophy} title="No active campaigns" text="Create one from the Campaigns page." />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {activeCompetitions.map((c) => (

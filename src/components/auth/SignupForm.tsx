@@ -13,13 +13,13 @@ const roles = [
     id: "brand",
     label: "Brand",
     icon: Briefcase,
-    text: "Hire streamers, post campaigns, and run clipping competitions",
+    text: "Hire streamers and run clipping campaigns",
   },
   {
     id: "creator",
     label: "Creator",
     icon: Clapperboard,
-    text: "Sell clips, join competitions, and earn from your content",
+    text: "Sell clips, join campaigns, and earn from your content",
   },
 ] as const;
 

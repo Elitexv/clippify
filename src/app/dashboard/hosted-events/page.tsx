@@ -60,7 +60,7 @@ function HostedEventsContent() {
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Hosted Events</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Competitions you&apos;re hosting and the clip links streamers have submitted.
+        Campaigns you&apos;re hosting and the clip links streamers have submitted.
       </p>
 
       {loading ? (
@@ -72,7 +72,7 @@ function HostedEventsContent() {
           <ComingSoon
             icon={Megaphone}
             title="You're not hosting any events yet"
-            text="Ask an admin to create a clipping competition for your brand account to see entries here."
+            text="Ask an admin to create a clipping campaign for your brand account to see entries here."
           />
         </div>
       ) : (

@@ -163,7 +163,7 @@ export default function AdminSettingsPage() {
         </section>
 
         <section className="rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Moderation & competitions</h2>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Moderation & campaigns</h2>
           <div className="mt-4 flex flex-col gap-4">
             <SettingToggle
               label="Auto-approve clip submissions"
@@ -172,8 +172,8 @@ export default function AdminSettingsPage() {
               onChange={(v) => update("autoModeration", v)}
             />
             <SettingToggle
-              label="Allow brand-hosted competitions"
-              description="Let brand accounts create and manage their own clipping competitions."
+              label="Allow brand-hosted campaigns"
+              description="Let brand accounts create and manage their own clipping campaigns."
               checked={settings.allowHostedCompetitions}
               onChange={(v) => update("allowHostedCompetitions", v)}
             />

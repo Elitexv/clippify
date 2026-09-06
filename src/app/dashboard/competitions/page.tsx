@@ -82,9 +82,9 @@ function CompetitionsContent() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Competitions</h1>
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Campaigns</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Join promotional clipping competitions hosted by brands and win cash prizes.
+        Join promotional clipping campaigns hosted by brands and win cash prizes.
       </p>
 
       {loading ? (
@@ -95,8 +95,8 @@ function CompetitionsContent() {
         <div className="mt-6">
           <ComingSoon
             icon={Trophy}
-            title="No competitions yet"
-            text="Brands can host a competition from the admin console. Check back soon."
+            title="No campaigns yet"
+            text="Brands can host a campaign from the admin console. Check back soon."
           />
         </div>
       ) : (
@@ -136,7 +136,7 @@ function CompetitionsContent() {
                   <>
                     {submission && !submission.withdrawn && (
                       <p className="mt-3 text-xs text-slate-400">
-                        You participated in this competition
+                        You participated in this campaign
                       </p>
                     )}
                     {submission?.withdrawn ? (
@@ -161,7 +161,7 @@ function CompetitionsContent() {
                         disabled
                         className="mt-4 w-full cursor-not-allowed rounded-lg bg-slate-100 py-2.5 text-sm font-semibold text-slate-400 dark:bg-white/5 dark:text-slate-500"
                       >
-                        Competition ended
+                        Campaign ended
                       </button>
                     )}
                   </>
@@ -212,7 +212,7 @@ function CompetitionsContent() {
                         onClick={() => setEntering((e) => ({ ...e, [comp.id]: true }))}
                         className="mt-4 w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-95"
                       >
-                        Join Competition
+                        Join Campaign
                       </button>
                     )}
                   </>
