@@ -15,6 +15,7 @@ import {
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
+import { payWithPaystack } from "@/lib/paystack";
 import {
   getPublicSettings,
   parseCurrency,
@@ -27,6 +28,7 @@ const defaultSettings: PublicPlatformSettings = {
   campaignProcessingFee: "5",
   minCampaignBudget: "50",
   liveProviders: [],
+  providerPublicKeys: {},
 };
 
 const inputClass =
@@ -116,7 +118,28 @@ function PostCampaignPageContent() {
     }
 
     setPaying(true);
+    setFormError("");
     try {
+      let paymentReference: string | undefined;
+
+      if (method === "paystack") {
+        const publicKey = settings.providerPublicKeys.paystack;
+        if (!publicKey) throw new Error("Paystack isn't fully configured yet. Ask an admin to check Manage Payments.");
+        // eslint-disable-next-line react-hooks/purity -- runs only inside this click handler, never during render
+        const reference = `clippifi-campaign-${user.id}-${Date.now()}`;
+        const result = await payWithPaystack({
+          publicKey,
+          email: user.email,
+          amountUsd: total,
+          reference,
+        });
+        if (!result) {
+          setPaying(false);
+          return;
+        }
+        paymentReference = result.reference;
+      }
+
       const flyerUrl = flyer ? await uploadCampaignFlyer(user.id, flyer) : "";
       await createCampaign({
         brandId: user.id,
@@ -127,6 +150,8 @@ function PostCampaignPageContent() {
         deadline,
         flyerUrl,
         status: "active",
+        paymentProvider: method ?? undefined,
+        paymentReference,
       });
       setPaying(false);
       setStep("success");

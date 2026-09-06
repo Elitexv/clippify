@@ -6,6 +6,7 @@ import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { addFavorite, fetchFavoriteIds, removeFavorite, subscribeToApprovedClips, type Clip } from "@/lib/clips";
 import { createOrder } from "@/lib/orders";
+import { payWithPaystack } from "@/lib/paystack";
 import {
   getPublicSettings,
   providerMeta,
@@ -17,6 +18,7 @@ const defaultSettings: PublicPlatformSettings = {
   campaignProcessingFee: "5",
   minCampaignBudget: "50",
   liveProviders: [],
+  providerPublicKeys: {},
 };
 
 const categories = ["All", "Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
@@ -194,6 +196,7 @@ function BrowseClipsContent() {
           clip={checkoutClip}
           buyerId={user.id}
           buyerName={user.name}
+          buyerEmail={user.email}
           onClose={() => setCheckoutClip(null)}
         />
       )}
@@ -205,11 +208,13 @@ function LicenseCheckoutModal({
   clip,
   buyerId,
   buyerName,
+  buyerEmail,
   onClose,
 }: {
   clip: Clip;
   buyerId: string;
   buyerName: string;
+  buyerEmail: string;
   onClose: () => void;
 }) {
   const [settings, setSettings] = useState<PublicPlatformSettings>(defaultSettings);
@@ -233,6 +238,24 @@ function LicenseCheckoutModal({
     setPaying(true);
     setError("");
     try {
+      let paymentReference: string | undefined;
+
+      if (method === "paystack") {
+        const publicKey = settings.providerPublicKeys.paystack;
+        if (!publicKey) throw new Error("Paystack isn't fully configured yet. Ask an admin to check Manage Payments.");
+        const result = await payWithPaystack({
+          publicKey,
+          email: buyerEmail,
+          amountUsd: clip.price,
+          reference: `clippifi-clip-${clip.id}-${Date.now()}`,
+        });
+        if (!result) {
+          setPaying(false);
+          return;
+        }
+        paymentReference = result.reference;
+      }
+
       await createOrder({
         buyerId,
         buyerName,
@@ -240,6 +263,8 @@ function LicenseCheckoutModal({
         clipTitle: clip.title,
         creatorId: clip.creatorId,
         amount: clip.price,
+        paymentProvider: method ?? undefined,
+        paymentReference,
       });
       setDone(true);
     } catch (err) {

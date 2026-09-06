@@ -55,6 +55,15 @@ export const providerFieldSchemas: Record<ProviderId, KeyField[]> = {
   ],
 };
 
+// Which key field of each provider is safe to ship to the browser (a "publishable"/
+// "public" key, by design meant to be client-visible) — used to derive
+// PublicPlatformSettings.providerPublicKeys. Bank transfer has no such key.
+export const providerPublicKeyField: Partial<Record<ProviderId, string>> = {
+  stripe: "publishableKey",
+  flutterwave: "publicKey",
+  paystack: "publicKey",
+};
+
 const emptyProvider = (): ProviderConfig => ({ enabled: false, keys: {} });
 
 export const defaultPlatformSettings: PlatformSettings = {
@@ -83,12 +92,16 @@ export type PublicPlatformSettings = {
   campaignProcessingFee: string;
   minCampaignBudget: string;
   liveProviders: ProviderId[];
+  // Public/publishable keys only, for live providers — never secret keys. Safe for
+  // any signed-in user to read, since that's exactly what a "public key" is for.
+  providerPublicKeys: Partial<Record<ProviderId, string>>;
 };
 
 const defaultPublicSettings: PublicPlatformSettings = {
   campaignProcessingFee: defaultPlatformSettings.campaignProcessingFee,
   minCampaignBudget: defaultPlatformSettings.minCampaignBudget,
   liveProviders: [],
+  providerPublicKeys: {},
 };
 
 function normalize(raw: unknown): PlatformSettings {
@@ -128,10 +141,17 @@ export function subscribeToPlatformSettings(callback: (settings: PlatformSetting
 
 export async function savePlatformSettings(settings: PlatformSettings) {
   await setDoc(SETTINGS_DOC, settings, { merge: false });
+  const liveProviders = getLiveProviders(settings);
+  const providerPublicKeys: Partial<Record<ProviderId, string>> = {};
+  for (const id of liveProviders) {
+    const field = providerPublicKeyField[id];
+    if (field) providerPublicKeys[id] = settings.paymentProviders[id].keys[field];
+  }
   const publicSettings: PublicPlatformSettings = {
     campaignProcessingFee: settings.campaignProcessingFee,
     minCampaignBudget: settings.minCampaignBudget,
-    liveProviders: getLiveProviders(settings),
+    liveProviders,
+    providerPublicKeys,
   };
   await setDoc(PUBLIC_SETTINGS_DOC, publicSettings, { merge: false });
 }

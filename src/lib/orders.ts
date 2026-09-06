@@ -12,6 +12,8 @@ export type Order = {
   creatorId: string;
   amount: number;
   status: OrderStatus;
+  paymentProvider?: string;
+  paymentReference?: string;
   createdAt: Timestamp | null;
 };
 
@@ -22,6 +24,8 @@ export async function createOrder({
   clipTitle,
   creatorId,
   amount,
+  paymentProvider,
+  paymentReference,
 }: {
   buyerId: string;
   buyerName: string;
@@ -29,6 +33,8 @@ export async function createOrder({
   clipTitle: string;
   creatorId: string;
   amount: number;
+  paymentProvider?: string;
+  paymentReference?: string;
 }) {
   const docRef = await addDoc(collection(db, "orders"), {
     buyerId,
@@ -37,6 +43,8 @@ export async function createOrder({
     clipTitle,
     creatorId,
     amount,
+    ...(paymentProvider ? { paymentProvider } : {}),
+    ...(paymentReference ? { paymentReference } : {}),
     status: "Delivered" satisfies OrderStatus,
     createdAt: serverTimestamp(),
   });

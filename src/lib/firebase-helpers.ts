@@ -338,6 +338,8 @@ export type Campaign = {
   deadline: string;
   flyerUrl: string;
   status: CampaignStatus;
+  paymentProvider?: string;
+  paymentReference?: string;
   createdAt: Timestamp | null;
 };
 
@@ -350,6 +352,8 @@ export async function createCampaign({
   deadline,
   flyerUrl,
   status = "draft",
+  paymentProvider,
+  paymentReference,
 }: {
   brandId: string;
   title: string;
@@ -359,6 +363,8 @@ export async function createCampaign({
   deadline?: string;
   flyerUrl?: string;
   status?: CampaignStatus;
+  paymentProvider?: string;
+  paymentReference?: string;
 }) {
   const docRef = await addDoc(collection(db, "campaigns"), {
     brandId,
@@ -369,6 +375,8 @@ export async function createCampaign({
     deadline: deadline ?? "",
     flyerUrl: flyerUrl ?? "",
     status,
+    ...(paymentProvider ? { paymentProvider } : {}),
+    ...(paymentReference ? { paymentReference } : {}),
     createdAt: serverTimestamp(),
   });
 
