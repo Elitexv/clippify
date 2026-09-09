@@ -58,9 +58,9 @@ function HostedEventsContent() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Hosted Events</h1>
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Hosted Contests</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Campaigns you&apos;re hosting and the clip links streamers have submitted.
+        Contests you&apos;re hosting and the clip links streamers have submitted.
       </p>
 
       {loading ? (
@@ -71,8 +71,8 @@ function HostedEventsContent() {
         <div className="mt-6">
           <ComingSoon
             icon={Megaphone}
-            title="You're not hosting any events yet"
-            text="Ask an admin to create a clipping campaign for your brand account to see entries here."
+            title="You're not hosting any contests yet"
+            text="Ask an admin to create a clipping contest for your brand account to see entries here."
           />
         </div>
       ) : (
@@ -102,7 +102,7 @@ function HostedEventsContent() {
 
                 {entries.length === 0 ? (
                   <p className="mt-3 px-1 text-sm text-slate-400">
-                    No clip links submitted for this event yet.
+                    No clip links submitted for this contest yet.
                   </p>
                 ) : (
                   <div className="mt-3 overflow-hidden rounded-2xl border border-slate-100 bg-white dark:border-white/10 dark:bg-[#111]">

@@ -19,7 +19,7 @@ const roles = [
     id: "creator",
     label: "Creator",
     icon: Clapperboard,
-    text: "Sell clips, join campaigns, and earn from your content",
+    text: "Sell clips, join contests, and earn from your content",
   },
 ] as const;
 

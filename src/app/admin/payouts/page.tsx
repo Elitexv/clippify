@@ -58,7 +58,7 @@ export default function PayoutsPage() {
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Payouts</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        What creators and streamers have earned from clip sales and campaign winnings.
+        What creators and streamers have earned from clip sales and contest winnings.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -75,7 +75,7 @@ export default function PayoutsPage() {
           <ComingSoon
             icon={Wallet}
             title="No payouts owed"
-            text="Once creators sell clips or withdraw campaign winnings, they'll show up here."
+            text="Once creators sell clips or withdraw contest winnings, they'll show up here."
           />
         </div>
       ) : (

@@ -123,9 +123,9 @@ export default function AdminCompetitionsPage() {
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Campaigns</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Contests</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Manage promotional clipping campaigns across the platform.
+            Manage promotional clipping contests across the platform.
           </p>
         </div>
         <button
@@ -133,7 +133,7 @@ export default function AdminCompetitionsPage() {
           className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-4 py-2 text-sm font-semibold text-black shadow-sm shadow-yellow-500/30 transition-transform duration-200 hover:scale-105"
         >
           {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showForm ? "Cancel" : "Create Campaign"}
+          {showForm ? "Cancel" : "Create Contest"}
         </button>
       </div>
 
@@ -210,14 +210,14 @@ export default function AdminCompetitionsPage() {
         </div>
       ) : competitions.length === 0 ? (
         <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center dark:border-white/10 dark:bg-[#111]">
-          <p className="text-sm text-slate-500 dark:text-slate-400">No campaigns yet.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">No contests yet.</p>
         </div>
       ) : (
         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-100 bg-white dark:border-white/10 dark:bg-[#111]">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400 dark:border-white/10">
-                <th className="px-4 py-3 font-medium">Campaign</th>
+                <th className="px-4 py-3 font-medium">Contest</th>
                 <th className="hidden px-4 py-3 font-medium sm:table-cell">Host</th>
                 <th className="px-4 py-3 font-medium">Prize</th>
                 <th className="px-4 py-3 font-medium">Payout per winner</th>

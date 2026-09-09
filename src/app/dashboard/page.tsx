@@ -217,7 +217,7 @@ function DashboardHomeContent() {
         {showCreator && (
           <StatCard icon={DollarSign} label="Clipping Balance" value={`$${clippingBalance.toFixed(2)}`} />
         )}
-        <StatCard icon={Trophy} label="Campaigns Joined" value={String(mySubmissions.length)} />
+        <StatCard icon={Trophy} label="Contests Joined" value={String(mySubmissions.length)} />
       </div>
 
       <SectionHeader title="Featured Clips" href="/dashboard/browse" />
@@ -255,9 +255,9 @@ function DashboardHomeContent() {
         </div>
       )}
 
-      <SectionHeader title="Active Campaigns" href="/dashboard/competitions" />
+      <SectionHeader title="Active Contests" href="/dashboard/competitions" />
       {competitions.filter((c) => c.status === "Active").length === 0 ? (
-        <ComingSoon icon={Trophy} title="No active campaigns" text="Check back soon for new campaigns to join." />
+        <ComingSoon icon={Trophy} title="No active contests" text="Check back soon for new contests to join." />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {competitions

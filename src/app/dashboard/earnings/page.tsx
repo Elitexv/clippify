@@ -48,19 +48,19 @@ function EarningsContent() {
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Earnings</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Your clipping balance from licensed clips, plus what you&apos;ve won and withdrawn from
-        campaigns.
+        contests.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard icon={DollarSign} label="Clipping Balance" value={`$${totalEarnings.toFixed(2)}`} />
         <StatCard icon={ShoppingBag} label="Clips Sold" value={String(orders.length)} />
-        <StatCard icon={Trophy} label="Campaign Winnings" value={`$${competitionWinnings.toFixed(2)}`} />
+        <StatCard icon={Trophy} label="Contest Winnings" value={`$${competitionWinnings.toFixed(2)}`} />
       </div>
 
       {orders.length === 0 && withdrawnSubmissions.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center dark:border-white/10 dark:bg-[#111]">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            License a clip or win a campaign to start seeing earnings here.
+            License a clip or win a contest to start seeing earnings here.
           </p>
         </div>
       ) : (
