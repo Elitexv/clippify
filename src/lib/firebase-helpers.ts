@@ -356,6 +356,7 @@ export type CampaignStatus = "draft" | "active" | "completed" | "cancelled";
 export type Campaign = {
   id: string;
   brandId: string;
+  brandName: string;
   title: string;
   channelLink: string;
   brief: string;
@@ -370,6 +371,7 @@ export type Campaign = {
 
 export async function createCampaign({
   brandId,
+  brandName,
   title,
   channelLink,
   brief,
@@ -381,6 +383,7 @@ export async function createCampaign({
   paymentReference,
 }: {
   brandId: string;
+  brandName: string;
   title: string;
   channelLink: string;
   brief?: string;
@@ -393,6 +396,7 @@ export async function createCampaign({
 }) {
   const docRef = await addDoc(collection(db, "campaigns"), {
     brandId,
+    brandName,
     title,
     channelLink,
     brief: brief ?? "",
@@ -414,6 +418,24 @@ export async function fetchCampaignsForUser(userId: string): Promise<Campaign[]>
   const campaigns = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Campaign);
   campaigns.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
   return campaigns;
+}
+
+// For creators browsing open campaigns to submit clips to (see /dashboard/competitions,
+// now repurposed as the creator-facing campaigns feed).
+export function subscribeToActiveCampaigns(callback: (campaigns: Campaign[]) => void) {
+  const q = query(collection(db, "campaigns"), where("status", "==", "active"));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const campaigns = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Campaign);
+      campaigns.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+      callback(campaigns);
+    },
+    (error) => {
+      console.error("Active campaigns listener error:", error);
+      callback([]);
+    },
+  );
 }
 
 // --- Admin: platform-wide user management ---

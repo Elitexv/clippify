@@ -33,7 +33,7 @@ export const accountNavItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Browse Clips", href: "/dashboard/browse", icon: Search },
   { label: "Hire Streamers", href: "/dashboard/hire", icon: Users, roles: ["brand"] },
-  { label: "Contests", href: "/dashboard/competitions", icon: Trophy, roles: ["creator"] },
+  { label: "Campaigns", href: "/dashboard/competitions", icon: Briefcase, roles: ["creator"] },
   { label: "My Campaigns", href: "/dashboard/campaigns", icon: ClipboardList, roles: ["brand"] },
   { label: "Hosted Contests", href: "/dashboard/hosted-events", icon: Megaphone, roles: ["brand"] },
   { label: "My Orders", href: "/dashboard/orders", icon: ShoppingBag, roles: ["brand"] },
@@ -49,7 +49,7 @@ export const accountCreateItems: NavItem[] = [
 export const accountMobileNavItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Browse", href: "/dashboard/browse", icon: Search },
-  { label: "Contests", href: "/dashboard/competitions", icon: Trophy, roles: ["creator"] },
+  { label: "Campaigns", href: "/dashboard/competitions", icon: Briefcase, roles: ["creator"] },
 ];
 
 export const adminMobileNavItems: NavItem[] = [

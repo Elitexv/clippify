@@ -2,17 +2,28 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ClipboardList, ExternalLink, Plus } from "lucide-react";
+import { Check, ClipboardList, ExternalLink, Plus, X } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import ComingSoon from "@/components/dashboard/ComingSoon";
 import { subscribeToCampaignsForUser, type Campaign, type CampaignStatus } from "@/lib/firebase-helpers";
+import {
+  subscribeToAllCampaignSubmissions,
+  updateCampaignSubmissionStatus,
+  type CampaignSubmission,
+} from "@/lib/campaign-submissions";
 
 const statusStyle: Record<CampaignStatus, string> = {
   draft: "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300",
   active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400",
   completed: "bg-sky-100 text-sky-700 dark:bg-sky-400/10 dark:text-sky-400",
   cancelled: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
+};
+
+const submissionStatusStyle: Record<CampaignSubmission["status"], string> = {
+  Pending: "bg-amber-100 text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400",
+  Approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400",
+  Rejected: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
 };
 
 export default function MyCampaignsPage() {
@@ -26,7 +37,9 @@ export default function MyCampaignsPage() {
 function MyCampaignsContent() {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [submissions, setSubmissions] = useState<CampaignSubmission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -34,8 +47,21 @@ function MyCampaignsContent() {
       setCampaigns(next);
       setLoading(false);
     });
-    return () => unsubscribe();
+    const unsubSubs = subscribeToAllCampaignSubmissions(setSubmissions);
+    return () => {
+      unsubscribe();
+      unsubSubs();
+    };
   }, [user]);
+
+  const resolve = async (id: string, status: "Approved" | "Rejected") => {
+    setRowBusy((b) => ({ ...b, [id]: true }));
+    try {
+      await updateCampaignSubmissionStatus(id, status);
+    } finally {
+      setRowBusy((b) => ({ ...b, [id]: false }));
+    }
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -106,6 +132,59 @@ function MyCampaignsContent() {
                   </span>
                   {c.deadline && <span>{c.deadline}</span>}
                 </div>
+
+                {(() => {
+                  const entries = submissions.filter((s) => s.campaignId === c.id);
+                  if (entries.length === 0) return null;
+                  return (
+                    <div className="mt-3 flex flex-col gap-1.5 border-t border-slate-100 pt-3 dark:border-white/10">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        {entries.length} {entries.length === 1 ? "entry" : "entries"}
+                      </p>
+                      {entries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs dark:bg-white/5"
+                        >
+                          <a
+                            href={entry.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="min-w-0 flex-1 truncate text-slate-600 hover:underline dark:text-slate-300"
+                          >
+                            {entry.submittedBy}
+                          </a>
+                          {entry.status === "Pending" ? (
+                            <div className="flex shrink-0 gap-1">
+                              <button
+                                onClick={() => resolve(entry.id, "Approved")}
+                                disabled={rowBusy[entry.id]}
+                                aria-label="Approve entry"
+                                className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => resolve(entry.id, "Rejected")}
+                                disabled={rowBusy[entry.id]}
+                                aria-label="Reject entry"
+                                className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-600 transition-transform hover:scale-105 active:scale-95 disabled:opacity-60 dark:bg-red-500/10 dark:text-red-400"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${submissionStatusStyle[entry.status]}`}
+                            >
+                              {entry.status}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ))}

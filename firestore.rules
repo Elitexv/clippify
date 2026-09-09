@@ -69,7 +69,12 @@ service cloud.firestore {
 
     // --- campaigns ---
     match /campaigns/{campaignId} {
-      allow read: if isSignedIn() && (isAdmin() || resource.data.brandId == request.auth.uid);
+      // Any signed-in user can read an active campaign — creators need to browse the
+      // open ones to submit clips (see /dashboard/competitions, the creator-facing
+      // campaigns feed). A non-active (e.g. future draft) campaign stays visible only
+      // to its owning brand and admins.
+      allow read: if isSignedIn()
+        && (isAdmin() || resource.data.brandId == request.auth.uid || resource.data.status == 'active');
 
       allow create: if isSignedIn() && request.resource.data.brandId == request.auth.uid;
 
@@ -110,6 +115,30 @@ service cloud.firestore {
           // The brand hosting the competition can approve/reject.
           isSignedIn() && onlyChanged(['status'])
           && get(/databases/$(database)/documents/competitions/$(resource.data.competitionId)).data.hostId == request.auth.uid
+        )
+        || (
+          // The streamer who submitted can withdraw their own entry.
+          isSignedIn() && resource.data.submittedByUid == request.auth.uid
+          && onlyChanged(['withdrawn']) && request.resource.data.withdrawn == true
+        );
+
+      allow delete: if false;
+    }
+
+    // --- campaign_submissions (clips streamers submit to a brand's campaign) ---
+    match /campaign_submissions/{submissionId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.submittedByUid == request.auth.uid
+        && request.resource.data.status == 'Pending'
+        && request.resource.data.withdrawn == false;
+
+      allow update: if isAdmin()
+        || (
+          // The brand behind the campaign can approve/reject.
+          isSignedIn() && onlyChanged(['status'])
+          && get(/databases/$(database)/documents/campaigns/$(resource.data.campaignId)).data.brandId == request.auth.uid
         )
         || (
           // The streamer who submitted can withdraw their own entry.

@@ -137,6 +137,7 @@ function PostCampaignPageContent() {
       const flyerUrl = flyer ? await uploadCampaignFlyer(user.id, flyer) : "";
       await createCampaign({
         brandId: user.id,
+        brandName: user.name,
         title: title.trim(),
         channelLink: channelLink.trim(),
         brief,

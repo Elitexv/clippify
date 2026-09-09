@@ -255,7 +255,7 @@ function DashboardHomeContent() {
         </div>
       )}
 
-      <SectionHeader title="Active Contests" href="/dashboard/competitions" />
+      <SectionHeader title="Active Contests" href="/dashboard/contests" />
       {competitions.filter((c) => c.status === "Active").length === 0 ? (
         <ComingSoon icon={Trophy} title="No active contests" text="Check back soon for new contests to join." />
       ) : (
@@ -278,7 +278,7 @@ function DashboardHomeContent() {
                   <span>{comp.entries} entries</span>
                 </div>
                 <Link
-                  href="/dashboard/competitions"
+                  href="/dashboard/contests"
                   className="mt-4 block w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2 text-center text-xs font-semibold text-black transition-transform duration-200 hover:scale-[1.02]"
                 >
                   View & join
