@@ -72,7 +72,7 @@ export default function ReportsPage() {
           <StatCard icon={ShoppingBag} label="Campaigns Posted" value={String(counts.campaigns)} />
           <StatCard icon={Trophy} label="Contests Hosted" value={String(counts.competitions)} />
           <StatCard icon={BarChart3} label="Orders" value={String(counts.orders)} />
-          <StatCard icon={DollarSign} label="Clip Sales Volume" value={`$${counts.revenue.toFixed(2)}`} />
+          <StatCard icon={DollarSign} label="Clip Sales Volume" value={`₦${counts.revenue.toFixed(2)}`} />
         </div>
       )}
 

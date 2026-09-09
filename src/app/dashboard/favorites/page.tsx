@@ -59,7 +59,7 @@ function FavoritesContent() {
                 <p className="truncate font-medium text-slate-900 dark:text-white">{fav.title}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{fav.creatorName}</p>
                 <p className="mt-1 text-sm font-semibold text-amber-600 dark:text-yellow-400">
-                  ${fav.price.toFixed(2)}
+                  ₦{fav.price.toFixed(2)}
                 </p>
               </div>
               <button

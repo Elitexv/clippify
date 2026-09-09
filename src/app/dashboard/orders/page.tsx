@@ -78,7 +78,7 @@ function OrdersContent() {
                     {o.createdAt ? o.createdAt.toDate().toLocaleDateString() : "—"}
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white">
-                    ${o.amount.toFixed(2)}
+                    ₦{o.amount.toFixed(2)}
                   </td>
                 </tr>
               ))}

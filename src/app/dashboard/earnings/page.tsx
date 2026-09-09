@@ -52,9 +52,9 @@ function EarningsContent() {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard icon={DollarSign} label="Clipping Balance" value={`$${totalEarnings.toFixed(2)}`} />
+        <StatCard icon={DollarSign} label="Clipping Balance" value={`₦${totalEarnings.toFixed(2)}`} />
         <StatCard icon={ShoppingBag} label="Clips Sold" value={String(orders.length)} />
-        <StatCard icon={Trophy} label="Contest Winnings" value={`$${competitionWinnings.toFixed(2)}`} />
+        <StatCard icon={Trophy} label="Contest Winnings" value={`₦${competitionWinnings.toFixed(2)}`} />
       </div>
 
       {orders.length === 0 && withdrawnSubmissions.length === 0 ? (
@@ -81,7 +81,7 @@ function EarningsContent() {
                     {o.createdAt ? o.createdAt.toDate().toLocaleDateString() : "—"}
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white">
-                    ${o.amount.toFixed(2)}
+                    ₦{o.amount.toFixed(2)}
                   </td>
                 </tr>
               ))}

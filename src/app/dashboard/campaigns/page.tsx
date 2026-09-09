@@ -102,7 +102,7 @@ function MyCampaignsContent() {
                 </a>
                 <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                   <span className="font-semibold text-amber-600 dark:text-yellow-400">
-                    ${c.budget.toFixed(2)} budget
+                    ₦{c.budget.toFixed(2)} budget
                   </span>
                   {c.deadline && <span>{c.deadline}</span>}
                 </div>

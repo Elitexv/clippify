@@ -170,7 +170,7 @@ function BrowseClipsContent() {
                 <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{clip.creatorName}</p>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-sm font-semibold text-amber-600 dark:text-yellow-400">
-                    ${clip.price.toFixed(2)}
+                    ₦{clip.price.toFixed(2)}
                   </span>
                   <button
                     onClick={() => setCheckoutClip(clip)}
@@ -308,7 +308,7 @@ function LicenseCheckoutModal({
 
             <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 p-3 text-sm dark:bg-white/5">
               <span className="text-slate-500 dark:text-slate-400">Total</span>
-              <span className="font-bold text-amber-600 dark:text-yellow-400">${clip.price.toFixed(2)}</span>
+              <span className="font-bold text-amber-600 dark:text-yellow-400">₦{clip.price.toFixed(2)}</span>
             </div>
 
             {loading ? (
@@ -361,7 +361,7 @@ function LicenseCheckoutModal({
                   Processing…
                 </>
               ) : (
-                `Pay $${clip.price.toFixed(2)}`
+                `Pay ₦${clip.price.toFixed(2)}`
               )}
             </button>
           </>

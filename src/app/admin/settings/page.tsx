@@ -132,7 +132,7 @@ export default function AdminSettingsPage() {
               <label className={labelClass}>Minimum campaign budget</label>
               <div className="relative mt-1.5">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                  $
+                  ₦
                 </span>
                 <input
                   type="number"

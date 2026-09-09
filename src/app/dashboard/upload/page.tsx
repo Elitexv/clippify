@@ -253,7 +253,7 @@ function UploadPageContent() {
               <input
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="e.g. $12"
+                placeholder="e.g. ₦12"
                 className={inputClass}
               />
             </div>

@@ -5,7 +5,7 @@ const stats = [
   { icon: Bookmark, value: "250K+", label: "Premium Clips" },
   { icon: ShoppingCart, value: "25K+", label: "Talented Clippers" },
   { icon: ShoppingBag, value: "10K+", label: "Happy Streamers/Brands" },
-  { icon: Sparkles, value: "$2M+", label: "Paid to Creators" },
+  { icon: Sparkles, value: "₦2M+", label: "Paid to Creators" },
   { icon: Eye, value: "20M+", label: "Impressions Achieved Across Clips" },
 ];
 

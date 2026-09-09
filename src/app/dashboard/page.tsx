@@ -215,7 +215,7 @@ function DashboardHomeContent() {
         )}
         <StatCard icon={Heart} label="Favorites" value={String(favoriteCount)} />
         {showCreator && (
-          <StatCard icon={DollarSign} label="Clipping Balance" value={`$${clippingBalance.toFixed(2)}`} />
+          <StatCard icon={DollarSign} label="Clipping Balance" value={`₦${clippingBalance.toFixed(2)}`} />
         )}
         <StatCard icon={Trophy} label="Contests Joined" value={String(mySubmissions.length)} />
       </div>
@@ -246,7 +246,7 @@ function DashboardHomeContent() {
                 <div className="mt-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                   <span>{clip.creatorName}</span>
                   <span className="font-semibold text-amber-600 dark:text-yellow-400">
-                    ${clip.price.toFixed(2)}
+                    ₦{clip.price.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -336,7 +336,7 @@ function DashboardHomeContent() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white">
-                        ${c.budget.toFixed(2)}
+                        ₦{c.budget.toFixed(2)}
                       </td>
                     </tr>
                   ))}

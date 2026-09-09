@@ -99,7 +99,7 @@ function PostCampaignPageContent() {
       return;
     }
     if (budgetAmount < minBudget) {
-      setFormError(`Campaign budget must be at least $${settings.minCampaignBudget}.`);
+      setFormError(`Campaign budget must be at least ₦${settings.minCampaignBudget}.`);
       return;
     }
     setStep("payment");
@@ -191,7 +191,7 @@ function PostCampaignPageContent() {
             Campaign posted
           </h2>
           <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-            Payment of ${total.toFixed(2)} received. &ldquo;{title}&rdquo; is live — streamers can
+            Payment of ₦{total.toFixed(2)} received. &ldquo;{title}&rdquo; is live — streamers can
             now follow your link and start submitting clips.
           </p>
           <button
@@ -216,19 +216,19 @@ function PostCampaignPageContent() {
             <div className="flex items-center justify-between">
               <span className="text-slate-500 dark:text-slate-400">Campaign budget</span>
               <span className="font-medium text-slate-900 dark:text-white">
-                ${budgetAmount.toFixed(2)}
+                ₦{budgetAmount.toFixed(2)}
               </span>
             </div>
             <div className="mt-1.5 flex items-center justify-between">
               <span className="text-slate-500 dark:text-slate-400">
                 Processing fee ({settings.campaignProcessingFee}%)
               </span>
-              <span className="font-medium text-slate-900 dark:text-white">${fee.toFixed(2)}</span>
+              <span className="font-medium text-slate-900 dark:text-white">₦{fee.toFixed(2)}</span>
             </div>
             <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-white/10">
               <span className="font-semibold text-slate-900 dark:text-white">Total</span>
               <span className="font-bold text-amber-600 dark:text-yellow-400">
-                ${total.toFixed(2)}
+                ₦{total.toFixed(2)}
               </span>
             </div>
           </div>
@@ -289,7 +289,7 @@ function PostCampaignPageContent() {
                   Processing payment…
                 </>
               ) : (
-                `Pay $${total.toFixed(2)} & post campaign`
+                `Pay ₦${total.toFixed(2)} & post campaign`
               )}
             </button>
           </div>
@@ -376,11 +376,11 @@ function PostCampaignPageContent() {
               <input
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
-                placeholder={`e.g. $${settings.minCampaignBudget}`}
+                placeholder={`e.g. ₦${settings.minCampaignBudget}`}
                 className={inputClass}
               />
               <p className="mt-1.5 text-xs text-slate-400">
-                ${settings.minCampaignBudget} minimum · +{settings.campaignProcessingFee}%
+                ₦{settings.minCampaignBudget} minimum · +{settings.campaignProcessingFee}%
                 processing fee at checkout.
               </p>
             </div>

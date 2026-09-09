@@ -62,7 +62,7 @@ export default function PayoutsPage() {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatCard icon={Wallet} label="Pending Payouts" value={`$${pendingTotal.toFixed(2)}`} />
+        <StatCard icon={Wallet} label="Pending Payouts" value={`₦${pendingTotal.toFixed(2)}`} />
         <StatCard icon={DollarSign} label="Creators Owed" value={String(payouts.length)} />
       </div>
 
@@ -93,7 +93,7 @@ export default function PayoutsPage() {
                 <tr key={p.creatorId} className="border-b border-slate-50 last:border-0 dark:border-white/5">
                   <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{p.name}</td>
                   <td className="px-4 py-3 font-semibold text-amber-600 dark:text-yellow-400">
-                    ${p.amount.toFixed(2)}
+                    ₦{p.amount.toFixed(2)}
                   </td>
                   <td className="px-4 py-3">
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400">

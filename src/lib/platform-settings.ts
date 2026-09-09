@@ -73,7 +73,7 @@ export const defaultPlatformSettings: PlatformSettings = {
   allowHostedCompetitions: true,
   maintenanceMode: false,
   campaignProcessingFee: "5",
-  minCampaignBudget: "50",
+  minCampaignBudget: "1000",
   paymentProviders: {
     stripe: emptyProvider(),
     flutterwave: emptyProvider(),

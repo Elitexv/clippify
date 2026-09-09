@@ -48,7 +48,7 @@ export default function AdminOverviewPage() {
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={Users} label="Total Users" value={String(users.length)} />
-        <StatCard icon={Wallet} label="Clip Sales Volume" value={`$${revenue.toFixed(2)}`} />
+        <StatCard icon={Wallet} label="Clip Sales Volume" value={`₦${revenue.toFixed(2)}`} />
         <StatCard icon={Trophy} label="Active Contests" value={String(activeCompetitions.length)} />
         <StatCard icon={ShieldAlert} label="Pending Moderation" value={String(pendingClips.length)} />
       </div>

@@ -169,7 +169,7 @@ export default function AdminCompetitionsPage() {
             <input
               value={prize}
               onChange={(e) => setPrize(e.target.value)}
-              placeholder="e.g. $3,000"
+              placeholder="e.g. ₦3,000"
               className={inputClass}
             />
           </div>
@@ -178,7 +178,7 @@ export default function AdminCompetitionsPage() {
             <input
               value={payout}
               onChange={(e) => setPayout(e.target.value)}
-              placeholder="e.g. $500"
+              placeholder="e.g. ₦500"
               className={inputClass}
             />
           </div>
@@ -244,7 +244,7 @@ export default function AdminCompetitionsPage() {
                       onChange={(e) => setPayoutDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
                       onBlur={() => savePayout(c)}
                       disabled={rowBusy[c.id]}
-                      placeholder="e.g. $500"
+                      placeholder="e.g. ₦500"
                       className="w-28 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white"
                     />
                   </td>
