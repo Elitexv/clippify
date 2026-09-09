@@ -46,6 +46,7 @@ export async function createClip({
   price,
   link = "",
   videoUrl = "",
+  status = "pending",
 }: {
   creatorId: string;
   creatorName: string;
@@ -54,6 +55,10 @@ export async function createClip({
   price: number;
   link?: string;
   videoUrl?: string;
+  // Only "approved" here actually goes through — the Firestore rule independently
+  // re-checks the platform's autoModeration setting, so a tampered client passing
+  // "approved" without that setting on just gets rejected, not silently downgraded.
+  status?: ClipStatus;
 }) {
   const docRef = await addDoc(collection(db, "clips"), {
     creatorId,
@@ -63,17 +68,25 @@ export async function createClip({
     price,
     link,
     videoUrl,
-    status: "pending" satisfies ClipStatus,
+    status,
     createdAt: serverTimestamp(),
   });
   return docRef.id;
 }
 
+// Sorted client-side (rather than via a Firestore `orderBy` alongside the `where`
+// below) so these listeners don't depend on a composite index being created in the
+// Firebase console — a where+orderBy-on-a-different-field query fails outright without
+// one, and silently returns nothing here since the error callback swallows it.
+function byCreatedAtDesc<T extends { createdAt: Timestamp | null }>(items: T[]): T[] {
+  return [...items].sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+}
+
 export function subscribeToApprovedClips(callback: (clips: Clip[]) => void) {
-  const q = query(collection(db, "clips"), where("status", "==", "approved"), orderBy("createdAt", "desc"));
+  const q = query(collection(db, "clips"), where("status", "==", "approved"));
   return onSnapshot(
     q,
-    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Clip)),
+    (snap) => callback(byCreatedAtDesc(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Clip))),
     (error) => {
       console.error("Approved clips listener error:", error);
       callback([]);
@@ -82,10 +95,10 @@ export function subscribeToApprovedClips(callback: (clips: Clip[]) => void) {
 }
 
 export function subscribeToPendingClips(callback: (clips: Clip[]) => void) {
-  const q = query(collection(db, "clips"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
+  const q = query(collection(db, "clips"), where("status", "==", "pending"));
   return onSnapshot(
     q,
-    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Clip)),
+    (snap) => callback(byCreatedAtDesc(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Clip))),
     (error) => {
       console.error("Pending clips listener error:", error);
       callback([]);
@@ -94,10 +107,10 @@ export function subscribeToPendingClips(callback: (clips: Clip[]) => void) {
 }
 
 export function subscribeToClipsForUser(userId: string, callback: (clips: Clip[]) => void) {
-  const q = query(collection(db, "clips"), where("creatorId", "==", userId), orderBy("createdAt", "desc"));
+  const q = query(collection(db, "clips"), where("creatorId", "==", userId));
   return onSnapshot(
     q,
-    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Clip)),
+    (snap) => callback(byCreatedAtDesc(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Clip))),
     (error) => {
       console.error("Creator clips listener error:", error);
       callback([]);

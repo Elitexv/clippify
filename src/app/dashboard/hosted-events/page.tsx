@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, ExternalLink, Megaphone, Trophy, Users, X } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import ComingSoon from "@/components/dashboard/ComingSoon";
+import { getPublicSettings } from "@/lib/platform-settings";
 import {
   subscribeToAllSubmissions,
   subscribeToCompetitionsForHost,
@@ -29,10 +31,17 @@ export default function HostedEventsPage() {
 
 function HostedEventsContent() {
   const { user } = useAuth();
+  const router = useRouter();
   const [hostedCompetitions, setHostedCompetitions] = useState<Competition[]>([]);
   const [submissions, setSubmissions] = useState<CompetitionSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    getPublicSettings().then((s) => {
+      if (!s.allowHostedCompetitions) router.replace("/dashboard");
+    });
+  }, [router]);
 
   useEffect(() => {
     if (!user) return;

@@ -5,7 +5,7 @@ import { CheckCircle2, Link2, Loader2, Upload, X } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { createClip, uploadClipVideo } from "@/lib/clips";
-import { parseCurrency } from "@/lib/platform-settings";
+import { getPublicSettings, parseCurrency } from "@/lib/platform-settings";
 
 const categories = ["Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 
@@ -40,6 +40,7 @@ function UploadPageContent() {
   const [price, setPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [approvedInstantly, setApprovedInstantly] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -65,6 +66,7 @@ function UploadPageContent() {
 
     setSubmitting(true);
     try {
+      const { autoModeration } = await getPublicSettings();
       const videoUrl = mode === "file" && videoFile ? await uploadClipVideo(user.id, videoFile) : "";
       await createClip({
         creatorId: user.id,
@@ -74,7 +76,9 @@ function UploadPageContent() {
         price: parseCurrency(price),
         link: mode === "link" ? link.trim() : "",
         videoUrl,
+        status: autoModeration ? "approved" : "pending",
       });
+      setApprovedInstantly(autoModeration);
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit the clip. Please try again.");
@@ -91,6 +95,7 @@ function UploadPageContent() {
     setCategory(categories[0]);
     setError("");
     setSubmitted(false);
+    setApprovedInstantly(false);
   };
 
   return (
@@ -107,11 +112,16 @@ function UploadPageContent() {
             <CheckCircle2 className="h-6 w-6" />
           </span>
           <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
-            {mode === "link" ? "Link submitted for review" : "Video uploaded for review"}
+            {approvedInstantly
+              ? "Clip is live"
+              : mode === "link"
+                ? "Link submitted for review"
+                : "Video uploaded for review"}
           </h2>
           <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-            &ldquo;{title}&rdquo; is in the moderation queue. Once approved, it&apos;ll list on
-            Browse Clips for buyers to find.
+            {approvedInstantly
+              ? `"${title}" is approved and already listed on Browse Clips.`
+              : `"${title}" is in the moderation queue. Once approved, it'll list on Browse Clips for buyers to find.`}
           </p>
           <button
             onClick={submitAnother}

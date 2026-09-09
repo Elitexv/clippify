@@ -95,13 +95,19 @@ export type PublicPlatformSettings = {
   // Public/publishable keys only, for live providers — never secret keys. Safe for
   // any signed-in user to read, since that's exactly what a "public key" is for.
   providerPublicKeys: Partial<Record<ProviderId, string>>;
+  autoModeration: boolean;
+  allowHostedCompetitions: boolean;
+  maintenanceMode: boolean;
 };
 
-const defaultPublicSettings: PublicPlatformSettings = {
+export const defaultPublicSettings: PublicPlatformSettings = {
   campaignProcessingFee: defaultPlatformSettings.campaignProcessingFee,
   minCampaignBudget: defaultPlatformSettings.minCampaignBudget,
   liveProviders: [],
   providerPublicKeys: {},
+  autoModeration: defaultPlatformSettings.autoModeration,
+  allowHostedCompetitions: defaultPlatformSettings.allowHostedCompetitions,
+  maintenanceMode: defaultPlatformSettings.maintenanceMode,
 };
 
 function normalize(raw: unknown): PlatformSettings {
@@ -152,6 +158,9 @@ export async function savePlatformSettings(settings: PlatformSettings) {
     minCampaignBudget: settings.minCampaignBudget,
     liveProviders,
     providerPublicKeys,
+    autoModeration: settings.autoModeration,
+    allowHostedCompetitions: settings.allowHostedCompetitions,
+    maintenanceMode: settings.maintenanceMode,
   };
   await setDoc(PUBLIC_SETTINGS_DOC, publicSettings, { merge: false });
 }

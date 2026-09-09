@@ -7,7 +7,6 @@ import {
   addDoc,
   query,
   where,
-  orderBy,
   getDocs,
   onSnapshot,
   Timestamp,
@@ -26,6 +25,7 @@ import {
 } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, db, storage } from "@/lib/firebase";
+import { getPublicSettings } from "@/lib/platform-settings";
 
 export type AppRole = "brand" | "creator" | "both" | "admin";
 
@@ -110,6 +110,17 @@ export async function createFirebaseUserProfile({
   return profile;
 }
 
+// Non-admin accounts can never be created mid-maintenance (a brand-new signup can
+// never be admin anyway), and an existing non-admin can't log in until it's lifted —
+// admins stay unaffected so there's always a way to turn maintenance mode back off.
+async function assertNotBlockedByMaintenance(role: AppRole) {
+  if (role === "admin") return;
+  const { maintenanceMode } = await getPublicSettings();
+  if (maintenanceMode) {
+    throw new Error("Clippifi is currently undergoing maintenance. Please check back soon.");
+  }
+}
+
 export async function registerWithFirebase({
   name,
   username,
@@ -123,6 +134,8 @@ export async function registerWithFirebase({
   password: string;
   role: AppRole;
 }) {
+  await assertNotBlockedByMaintenance(role);
+
   let methods: string[];
   try {
     methods = await fetchSignInMethodsForEmail(auth, email.trim());
@@ -213,6 +226,12 @@ export async function loginWithFirebase(email: string, password: string) {
     await signOut(auth);
     throw new Error("This account has been suspended. Contact support for help.");
   }
+  try {
+    await assertNotBlockedByMaintenance(profile.role);
+  } catch (error) {
+    await signOut(auth);
+    throw error;
+  }
   return profile;
 }
 
@@ -230,7 +249,14 @@ export async function signInWithOAuth(providerName: "google" | "apple", role: Ap
   }
   // `role` only takes effect for a brand-new account (ensureUserProfile only uses the
   // fallback role when no profile doc exists yet) — a returning user keeps their real role.
-  return ensureUserProfile(credential.user, role);
+  const profile = await ensureUserProfile(credential.user, role);
+  try {
+    await assertNotBlockedByMaintenance(profile.role);
+  } catch (error) {
+    await signOut(auth);
+    throw error;
+  }
+  return profile;
 }
 
 export async function logoutFromFirebase() {
@@ -259,16 +285,15 @@ export function subscribeToUserProfile(uid: string, callback: (user: AppUser | n
 }
 
 export function subscribeToCampaignsForUser(userId: string, callback: (campaigns: Campaign[]) => void) {
-  const campaignsQuery = query(
-    collection(db, "campaigns"),
-    where("brandId", "==", userId),
-    orderBy("createdAt", "desc"),
-  );
+  // Sorted client-side rather than via Firestore `orderBy` alongside the `where`
+  // below, so this doesn't depend on a composite index existing in the console.
+  const campaignsQuery = query(collection(db, "campaigns"), where("brandId", "==", userId));
 
   return onSnapshot(
     campaignsQuery,
     (snapshot) => {
       const campaigns = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Campaign);
+      campaigns.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
       callback(campaigns);
     },
     (error) => {
@@ -384,13 +409,11 @@ export async function createCampaign({
 }
 
 export async function fetchCampaignsForUser(userId: string): Promise<Campaign[]> {
-  const q = query(
-    collection(db, "campaigns"),
-    where("brandId", "==", userId),
-    orderBy("createdAt", "desc"),
-  );
+  const q = query(collection(db, "campaigns"), where("brandId", "==", userId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Campaign);
+  const campaigns = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Campaign);
+  campaigns.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+  return campaigns;
 }
 
 // --- Admin: platform-wide user management ---

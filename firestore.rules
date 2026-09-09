@@ -50,7 +50,16 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.resource.data.creatorId == request.auth.uid
-        && request.resource.data.status == 'pending';
+        && (
+          request.resource.data.status == 'pending'
+          // Only allowed when the platform-wide auto-moderation setting is actually
+          // on — this reads the real server-side value, not the client's request, so
+          // a tampered client can't self-approve by just changing what it sends.
+          || (
+            request.resource.data.status == 'approved'
+            && get(/databases/$(database)/documents/settings/public).data.autoModeration == true
+          )
+        );
 
       // Only admin moderation (approve/reject) can change a clip afterward.
       allow update: if isAdmin() && onlyChanged(['status']);
@@ -128,10 +137,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Derived, non-secret subset (fees + which providers are live) that
-    // Post a Campaign / clip-license checkout read from.
+    // Derived, non-secret subset (fees, which providers are live, moderation/
+    // maintenance toggles) that checkout and the login/signup flow read from. Public
+    // read (not just isSignedIn()) is intentional: nothing in this doc is sensitive —
+    // provider "public" keys are safe by design — and maintenanceMode/autoModeration
+    // need to be readable before a visitor is signed in at all.
     match /settings/public {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
   }

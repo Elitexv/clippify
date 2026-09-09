@@ -8,18 +8,12 @@ import { addFavorite, fetchFavoriteIds, removeFavorite, subscribeToApprovedClips
 import { createOrder } from "@/lib/orders";
 import { payWithPaystack } from "@/lib/paystack";
 import {
+  defaultPublicSettings as defaultSettings,
   getPublicSettings,
   providerMeta,
   type PublicPlatformSettings,
   type ProviderId,
 } from "@/lib/platform-settings";
-
-const defaultSettings: PublicPlatformSettings = {
-  campaignProcessingFee: "5",
-  minCampaignBudget: "50",
-  liveProviders: [],
-  providerPublicKeys: {},
-};
 
 const categories = ["All", "Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 

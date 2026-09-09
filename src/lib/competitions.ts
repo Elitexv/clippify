@@ -72,10 +72,16 @@ export function subscribeToCompetitions(callback: (competitions: Competition[]) 
 }
 
 export function subscribeToCompetitionsForHost(hostId: string, callback: (competitions: Competition[]) => void) {
-  const q = query(collection(db, "competitions"), where("hostId", "==", hostId), orderBy("createdAt", "desc"));
+  // Sorted client-side, not via Firestore `orderBy`, so this doesn't depend on a
+  // composite index for hostId+createdAt existing in the Firebase console.
+  const q = query(collection(db, "competitions"), where("hostId", "==", hostId));
   return onSnapshot(
     q,
-    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Competition)),
+    (snap) => {
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Competition);
+      items.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+      callback(items);
+    },
     (error) => {
       console.error("Hosted competitions listener error:", error);
       callback([]);

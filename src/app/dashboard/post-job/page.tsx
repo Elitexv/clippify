@@ -17,19 +17,13 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
 import { payWithPaystack } from "@/lib/paystack";
 import {
+  defaultPublicSettings as defaultSettings,
   getPublicSettings,
   parseCurrency,
   providerMeta,
   type PublicPlatformSettings,
   type ProviderId,
 } from "@/lib/platform-settings";
-
-const defaultSettings: PublicPlatformSettings = {
-  campaignProcessingFee: "5",
-  minCampaignBudget: "50",
-  liveProviders: [],
-  providerPublicKeys: {},
-};
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
