@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Banknote,
   CheckCircle2,
@@ -16,6 +17,7 @@ import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
 import { payWithPaystack } from "@/lib/paystack";
+import { recordTransaction } from "@/lib/transactions";
 import {
   defaultPublicSettings as defaultSettings,
   getPublicSettings,
@@ -48,6 +50,7 @@ export default function PostCampaignPage() {
 
 function PostCampaignPageContent() {
   const { user } = useAuth();
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [channelLink, setChannelLink] = useState("");
   const [brief, setBrief] = useState("");
@@ -114,6 +117,11 @@ function PostCampaignPageContent() {
     setPaying(true);
     setFormError("");
     try {
+      // Upload the flyer *before* charging the customer — if this fails (e.g. Storage
+      // misconfigured), they see the error immediately instead of being charged and
+      // then stuck on "Processing payment..." while a post-payment step silently hangs.
+      const flyerUrl = flyer ? await uploadCampaignFlyer(user.id, flyer) : "";
+
       let paymentReference: string | undefined;
 
       if (method === "paystack") {
@@ -128,13 +136,33 @@ function PostCampaignPageContent() {
           reference,
         });
         if (!result) {
+          await recordTransaction({
+            type: "campaign",
+            status: "failed",
+            userId: user.id,
+            userName: user.name,
+            amount: total,
+            provider: method,
+            reference,
+            failureReason: "Payment window closed before completion",
+            relatedTitle: title.trim(),
+          }).catch((err) => console.error("Failed to record transaction:", err));
           setPaying(false);
           return;
         }
         paymentReference = result.reference;
+        await recordTransaction({
+          type: "campaign",
+          status: "success",
+          userId: user.id,
+          userName: user.name,
+          amount: total,
+          provider: method,
+          reference: paymentReference,
+          relatedTitle: title.trim(),
+        }).catch((err) => console.error("Failed to record transaction:", err));
       }
 
-      const flyerUrl = flyer ? await uploadCampaignFlyer(user.id, flyer) : "";
       await createCampaign({
         brandId: user.id,
         brandName: user.name,
@@ -150,6 +178,7 @@ function PostCampaignPageContent() {
       });
       setPaying(false);
       setStep("success");
+      setTimeout(() => router.push("/dashboard/campaigns"), 1800);
     } catch (error) {
       setPaying(false);
       setFormError(error instanceof Error ? error.message : "Could not save the campaign. Please try again.");
@@ -189,18 +218,30 @@ function PostCampaignPageContent() {
             <CheckCircle2 className="h-6 w-6" />
           </span>
           <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
-            Campaign posted
+            Payment successful
           </h2>
           <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
             Payment of ₦{total.toFixed(2)} received. &ldquo;{title}&rdquo; is live — streamers can
             now follow your link and start submitting clips.
           </p>
-          <button
-            onClick={postAnother}
-            className="mt-5 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 dark:bg-yellow-400 dark:text-black"
-          >
-            Post another campaign
-          </button>
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Taking you to My Campaigns…
+          </p>
+          <div className="mt-5 flex gap-2">
+            <button
+              onClick={() => router.push("/dashboard/campaigns")}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 dark:bg-yellow-400 dark:text-black"
+            >
+              View My Campaigns
+            </button>
+            <button
+              onClick={postAnother}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              Post another
+            </button>
+          </div>
         </div>
       ) : step === "payment" ? (
         <div className="mt-6 flex flex-col gap-5 rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]">

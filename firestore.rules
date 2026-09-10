@@ -159,6 +159,17 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // --- transactions (payment attempt ledger — both successful and failed) ---
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+      // A payment record is a fact of what happened — never edited or removed
+      // afterward, by anyone (including admins).
+      allow update, delete: if false;
+    }
+
     // --- platform settings ---
     // Full config, including payment-provider secret keys — admin only,
     // never readable by a regular signed-in user.

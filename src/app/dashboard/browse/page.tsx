@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { addFavorite, fetchFavoriteIds, removeFavorite, subscribeToApprovedClips, type Clip } from "@/lib/clips";
 import { createOrder } from "@/lib/orders";
 import { payWithPaystack } from "@/lib/paystack";
+import { recordTransaction } from "@/lib/transactions";
 import {
   defaultPublicSettings as defaultSettings,
   getPublicSettings,
@@ -237,17 +238,39 @@ function LicenseCheckoutModal({
       if (method === "paystack") {
         const publicKey = settings.providerPublicKeys.paystack;
         if (!publicKey) throw new Error("Paystack isn't fully configured yet. Ask an admin to check Manage Payments.");
+        const reference = `clippifi-clip-${clip.id}-${Date.now()}`;
         const result = await payWithPaystack({
           publicKey,
           email: buyerEmail,
           amountUsd: clip.price,
-          reference: `clippifi-clip-${clip.id}-${Date.now()}`,
+          reference,
         });
         if (!result) {
+          await recordTransaction({
+            type: "clip_license",
+            status: "failed",
+            userId: buyerId,
+            userName: buyerName,
+            amount: clip.price,
+            provider: method,
+            reference,
+            failureReason: "Payment window closed before completion",
+            relatedTitle: clip.title,
+          }).catch((err) => console.error("Failed to record transaction:", err));
           setPaying(false);
           return;
         }
         paymentReference = result.reference;
+        await recordTransaction({
+          type: "clip_license",
+          status: "success",
+          userId: buyerId,
+          userName: buyerName,
+          amount: clip.price,
+          provider: method,
+          reference: paymentReference,
+          relatedTitle: clip.title,
+        }).catch((err) => console.error("Failed to record transaction:", err));
       }
 
       await createOrder({

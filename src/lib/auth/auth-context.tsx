@@ -60,13 +60,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = subscribeToAuth((nextUser, firebaseUser, isSynthetic) => {
+      // A late synthetic update after we've already confirmed the real profile for
+      // this uid — ignore it outright (isLoading is already false by this point).
       if (isSynthetic && firebaseUser && realProfileUidRef.current === firebaseUser.uid) {
-        setIsLoading(false);
         return;
       }
       realProfileUidRef.current = !isSynthetic && firebaseUser ? firebaseUser.uid : null;
       setUser(nextUser);
-      setIsLoading(false);
+      // Don't end the loading state on a synthetic (role defaults to "creator", not
+      // yet confirmed against Firestore) profile — RequireAuth gates page access on
+      // `user.role` the instant isLoading goes false, so ending it early here let a
+      // real brand/creator user get redirected away from their own role's pages on a
+      // cold load / hard refresh, before the real profile had a chance to arrive.
+      if (!isSynthetic || !firebaseUser) {
+        setIsLoading(false);
+      }
     });
 
     return () => unsubscribe();
