@@ -28,6 +28,10 @@ export type Clip = {
   link: string;
   videoUrl: string;
   status: ClipStatus;
+  // Set when this clip was submitted as a creator's entry to a brand's campaign
+  // (see /dashboard/competitions) rather than uploaded standalone.
+  campaignId?: string;
+  campaignTitle?: string;
   createdAt: Timestamp | null;
 };
 
@@ -47,6 +51,8 @@ export async function createClip({
   link = "",
   videoUrl = "",
   status = "pending",
+  campaignId,
+  campaignTitle,
 }: {
   creatorId: string;
   creatorName: string;
@@ -59,6 +65,8 @@ export async function createClip({
   // re-checks the platform's autoModeration setting, so a tampered client passing
   // "approved" without that setting on just gets rejected, not silently downgraded.
   status?: ClipStatus;
+  campaignId?: string;
+  campaignTitle?: string;
 }) {
   const docRef = await addDoc(collection(db, "clips"), {
     creatorId,
@@ -69,6 +77,7 @@ export async function createClip({
     link,
     videoUrl,
     status,
+    ...(campaignId ? { campaignId, campaignTitle: campaignTitle ?? "" } : {}),
     createdAt: serverTimestamp(),
   });
   return docRef.id;
@@ -113,6 +122,18 @@ export function subscribeToClipsForUser(userId: string, callback: (clips: Clip[]
     (snap) => callback(byCreatedAtDesc(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Clip))),
     (error) => {
       console.error("Creator clips listener error:", error);
+      callback([]);
+    },
+  );
+}
+
+export function subscribeToClipsForCampaign(campaignId: string, callback: (clips: Clip[]) => void) {
+  const q = query(collection(db, "clips"), where("campaignId", "==", campaignId));
+  return onSnapshot(
+    q,
+    (snap) => callback(byCreatedAtDesc(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Clip))),
+    (error) => {
+      console.error("Campaign clips listener error:", error);
       callback([]);
     },
   );

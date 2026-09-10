@@ -70,6 +70,11 @@ export default function ModerationPage() {
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   by {clip.creatorName} · {clip.category} · ₦{clip.price.toFixed(2)}
                 </p>
+                {clip.campaignTitle && (
+                  <p className="mt-0.5 text-[11px] text-amber-600 dark:text-yellow-400">
+                    Submitted for campaign: {clip.campaignTitle}
+                  </p>
+                )}
                 {clip.link && (
                   <a
                     href={clip.link}

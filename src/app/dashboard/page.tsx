@@ -10,7 +10,6 @@ import {
   DollarSign,
   Film,
   Heart,
-  Link2,
   Play,
   ShoppingBag,
   Trophy,
@@ -198,11 +197,11 @@ function DashboardHomeContent() {
         )}
         {showCreator && (
           <PromoBanner
-            icon={Link2}
-            title="Upload & Earn"
-            text="Drop a link to your clip and connect with brands looking for creator content."
-            cta="Upload Link"
-            href="/dashboard/upload"
+            icon={Briefcase}
+            title="Join a Campaign"
+            text="Submit a clip to an open brand campaign — once approved, it's live on Browse Clips too."
+            cta="Browse Campaigns"
+            href="/dashboard/competitions"
           />
         )}
       </div>

@@ -2,16 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, ClipboardList, ExternalLink, Plus, X } from "lucide-react";
+import { CheckCircle2, ClipboardList, ExternalLink, Loader2, Plus, XCircle } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import ComingSoon from "@/components/dashboard/ComingSoon";
 import { subscribeToCampaignsForUser, type Campaign, type CampaignStatus } from "@/lib/firebase-helpers";
-import {
-  subscribeToAllCampaignSubmissions,
-  updateCampaignSubmissionStatus,
-  type CampaignSubmission,
-} from "@/lib/campaign-submissions";
+import { subscribeToClipsForCampaign, type Clip, type ClipStatus } from "@/lib/clips";
 
 const statusStyle: Record<CampaignStatus, string> = {
   draft: "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300",
@@ -20,10 +16,10 @@ const statusStyle: Record<CampaignStatus, string> = {
   cancelled: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
 };
 
-const submissionStatusStyle: Record<CampaignSubmission["status"], string> = {
-  Pending: "bg-amber-100 text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400",
-  Approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400",
-  Rejected: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
+const clipStatusStyle: Record<ClipStatus, { cls: string; icon: typeof CheckCircle2 }> = {
+  pending: { cls: "bg-amber-100 text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400", icon: Loader2 },
+  approved: { cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400", icon: CheckCircle2 },
+  rejected: { cls: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400", icon: XCircle },
 };
 
 export default function MyCampaignsPage() {
@@ -37,9 +33,8 @@ export default function MyCampaignsPage() {
 function MyCampaignsContent() {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [submissions, setSubmissions] = useState<CampaignSubmission[]>([]);
+  const [entries, setEntries] = useState<Clip[]>([]);
   const [loading, setLoading] = useState(true);
-  const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -47,21 +42,23 @@ function MyCampaignsContent() {
       setCampaigns(next);
       setLoading(false);
     });
-    const unsubSubs = subscribeToAllCampaignSubmissions(setSubmissions);
-    return () => {
-      unsubscribe();
-      unsubSubs();
-    };
+    return () => unsubscribe();
   }, [user]);
 
-  const resolve = async (id: string, status: "Approved" | "Rejected") => {
-    setRowBusy((b) => ({ ...b, [id]: true }));
-    try {
-      await updateCampaignSubmissionStatus(id, status);
-    } finally {
-      setRowBusy((b) => ({ ...b, [id]: false }));
-    }
-  };
+  // Subscribed per-campaign (not "all clips, filter client-side") so this only ever
+  // reads clips belonging to this brand's own campaigns.
+  const campaignIds = campaigns.map((c) => c.id).sort().join(",");
+  useEffect(() => {
+    const ids = campaignIds ? campaignIds.split(",") : [];
+    const perCampaign = new Map<string, Clip[]>();
+    const unsubs = ids.map((id) =>
+      subscribeToClipsForCampaign(id, (clips) => {
+        perCampaign.set(id, clips);
+        setEntries(Array.from(perCampaign.values()).flat());
+      }),
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [campaignIds]);
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -69,7 +66,7 @@ function MyCampaignsContent() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Campaigns</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Campaigns you&apos;ve posted and what streamers can see about each one.
+            Campaigns you&apos;ve posted and the clips streamers have submitted to each one.
           </p>
         </div>
         <Link
@@ -134,54 +131,48 @@ function MyCampaignsContent() {
                 </div>
 
                 {(() => {
-                  const entries = submissions.filter((s) => s.campaignId === c.id);
-                  if (entries.length === 0) return null;
+                  const clipEntries = entries.filter((entry) => entry.campaignId === c.id);
+                  if (clipEntries.length === 0) return null;
                   return (
                     <div className="mt-3 flex flex-col gap-1.5 border-t border-slate-100 pt-3 dark:border-white/10">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                        {entries.length} {entries.length === 1 ? "entry" : "entries"}
+                        {clipEntries.length} {clipEntries.length === 1 ? "clip" : "clips"} submitted
                       </p>
-                      {entries.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs dark:bg-white/5"
-                        >
-                          <a
-                            href={entry.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="min-w-0 flex-1 truncate text-slate-600 hover:underline dark:text-slate-300"
+                      {clipEntries.map((entry) => {
+                        const style = clipStatusStyle[entry.status];
+                        const StatusIcon = style.icon;
+                        const href = entry.videoUrl || entry.link;
+                        return (
+                          <div
+                            key={entry.id}
+                            className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs dark:bg-white/5"
                           >
-                            {entry.submittedBy}
-                          </a>
-                          {entry.status === "Pending" ? (
-                            <div className="flex shrink-0 gap-1">
-                              <button
-                                onClick={() => resolve(entry.id, "Approved")}
-                                disabled={rowBusy[entry.id]}
-                                aria-label="Approve entry"
-                                className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white transition-transform hover:scale-105 active:scale-95 disabled:opacity-60"
+                            {href ? (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="min-w-0 flex-1 truncate text-slate-600 hover:underline dark:text-slate-300"
                               >
-                                <Check className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => resolve(entry.id, "Rejected")}
-                                disabled={rowBusy[entry.id]}
-                                aria-label="Reject entry"
-                                className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-600 transition-transform hover:scale-105 active:scale-95 disabled:opacity-60 dark:bg-red-500/10 dark:text-red-400"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ) : (
+                                {entry.creatorName} — {entry.title}
+                              </a>
+                            ) : (
+                              <span className="min-w-0 flex-1 truncate text-slate-600 dark:text-slate-300">
+                                {entry.creatorName} — {entry.title}
+                              </span>
+                            )}
                             <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${submissionStatusStyle[entry.status]}`}
+                              className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${style.cls}`}
                             >
+                              <StatusIcon className="h-3 w-3" />
                               {entry.status}
                             </span>
-                          )}
-                        </div>
-                      ))}
+                          </div>
+                        );
+                      })}
+                      <p className="mt-1 text-[10px] text-slate-400">
+                        Clips are moderated platform-wide from Admin &gt; Moderation.
+                      </p>
                     </div>
                   );
                 })()}

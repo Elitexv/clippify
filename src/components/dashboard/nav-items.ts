@@ -8,7 +8,6 @@ import {
   Home,
   KeyRound,
   LayoutDashboard,
-  Link2,
   Megaphone,
   Receipt,
   Search,
@@ -43,7 +42,6 @@ export const accountNavItems: NavItem[] = [
 ];
 
 export const accountCreateItems: NavItem[] = [
-  { label: "Upload Link", href: "/dashboard/upload", icon: Link2, roles: ["creator"] },
   { label: "Post a Campaign", href: "/dashboard/post-job", icon: Briefcase, roles: ["brand"] },
 ];
 

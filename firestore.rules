@@ -125,30 +125,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // --- campaign_submissions (clips streamers submit to a brand's campaign) ---
-    match /campaign_submissions/{submissionId} {
-      allow read: if isSignedIn();
-
-      allow create: if isSignedIn()
-        && request.resource.data.submittedByUid == request.auth.uid
-        && request.resource.data.status == 'Pending'
-        && request.resource.data.withdrawn == false;
-
-      allow update: if isAdmin()
-        || (
-          // The brand behind the campaign can approve/reject.
-          isSignedIn() && onlyChanged(['status'])
-          && get(/databases/$(database)/documents/campaigns/$(resource.data.campaignId)).data.brandId == request.auth.uid
-        )
-        || (
-          // The streamer who submitted can withdraw their own entry.
-          isSignedIn() && resource.data.submittedByUid == request.auth.uid
-          && onlyChanged(['withdrawn']) && request.resource.data.withdrawn == true
-        );
-
-      allow delete: if false;
-    }
-
     // --- orders (clip licenses) ---
     match /orders/{orderId} {
       allow read: if isSignedIn()
