@@ -68,7 +68,7 @@ export default function ModerationPage() {
               <div className="p-4">
                 <p className="font-semibold text-slate-900 dark:text-white">{clip.title}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  by {clip.creatorName} · {clip.category} · ₦{clip.price.toFixed(2)}
+                  by {clip.creatorName} · {clip.category}
                 </p>
                 {clip.campaignTitle && (
                   <p className="mt-0.5 text-[11px] text-amber-600 dark:text-yellow-400">

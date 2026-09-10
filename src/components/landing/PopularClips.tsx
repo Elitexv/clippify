@@ -9,7 +9,6 @@ const clips = [
     imageSeed: "clip-tech-server-room",
     views: "12.4K",
     likes: "245",
-    price: "₦12",
   },
   {
     duration: "00:32",
@@ -18,7 +17,6 @@ const clips = [
     imageSeed: "clip-basketball-action",
     views: "8.7K",
     likes: "198",
-    price: "₦9",
   },
   {
     duration: "00:28",
@@ -27,7 +25,6 @@ const clips = [
     imageSeed: "clip-sunrise-run",
     views: "15.2K",
     likes: "312",
-    price: "₦11",
   },
   {
     duration: "00:59",
@@ -36,7 +33,6 @@ const clips = [
     imageSeed: "clip-forest-waterfall",
     views: "6.3K",
     likes: "162",
-    price: "₦8",
   },
 ];
 
@@ -84,16 +80,13 @@ export default function PopularClips() {
                   {clip.author}
                   <BadgeCheck className="h-3.5 w-3.5 text-sky-500" />
                 </p>
-                <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                  <span className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-3.5 w-3.5" /> {clip.views}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Heart className="h-3.5 w-3.5" /> {clip.likes}
-                    </span>
+                <div className="mt-3 flex items-center gap-3 text-xs text-slate-500">
+                  <span className="flex items-center gap-1">
+                    <Eye className="h-3.5 w-3.5" /> {clip.views}
                   </span>
-                  <span className="font-semibold text-amber-600">{clip.price}</span>
+                  <span className="flex items-center gap-1">
+                    <Heart className="h-3.5 w-3.5" /> {clip.likes}
+                  </span>
                 </div>
               </div>
             </div>

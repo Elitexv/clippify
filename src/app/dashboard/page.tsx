@@ -26,7 +26,6 @@ import {
   type CompetitionSubmission,
 } from "@/lib/competitions";
 import { subscribeToCampaignsForUser, type Campaign } from "@/lib/firebase-helpers";
-import { subscribeToOrdersForCreator, type Order } from "@/lib/orders";
 import { parseCurrency } from "@/lib/platform-settings";
 
 const roleLabel: Record<string, string> = {
@@ -54,7 +53,6 @@ function DashboardHomeContent() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [mySubmissions, setMySubmissions] = useState<CompetitionSubmission[]>([]);
-  const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [favoriteCount, setFavoriteCount] = useState(0);
 
   useEffect(() => {
@@ -71,13 +69,11 @@ function DashboardHomeContent() {
     const unsubMyClips = subscribeToClipsForUser(user.id, setMyClips);
     const unsubCampaigns = subscribeToCampaignsForUser(user.id, setCampaigns);
     const unsubSubs = subscribeToSubmissionsForUser(user.id, setMySubmissions);
-    const unsubOrders = subscribeToOrdersForCreator(user.id, setMyOrders);
     fetchFavoriteIds(user.id).then((ids) => setFavoriteCount(ids.size));
     return () => {
       unsubMyClips();
       unsubCampaigns();
       unsubSubs();
-      unsubOrders();
     };
   }, [user]);
 
@@ -126,14 +122,12 @@ function DashboardHomeContent() {
   };
 
   const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
-  const clipEarnings = myOrders.reduce((sum, o) => sum + o.amount, 0);
   const competitionWinnings = mySubmissions
     .filter((s) => s.withdrawn)
     .reduce((sum, s) => {
       const comp = competitions.find((c) => c.id === s.competitionId);
       return sum + parseCurrency(comp?.payout ?? "0");
     }, 0);
-  const clippingBalance = clipEarnings + competitionWinnings;
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -214,7 +208,7 @@ function DashboardHomeContent() {
         )}
         <StatCard icon={Heart} label="Favorites" value={String(favoriteCount)} />
         {showCreator && (
-          <StatCard icon={DollarSign} label="Clipping Balance" value={`₦${clippingBalance.toFixed(2)}`} />
+          <StatCard icon={DollarSign} label="Contest Winnings" value={`₦${competitionWinnings.toFixed(2)}`} />
         )}
         <StatCard icon={Trophy} label="Contests Joined" value={String(mySubmissions.length)} />
       </div>
@@ -242,12 +236,9 @@ function DashboardHomeContent() {
                 <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                   {clip.title}
                 </p>
-                <div className="mt-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span>{clip.creatorName}</span>
-                  <span className="font-semibold text-amber-600 dark:text-yellow-400">
-                    ₦{clip.price.toFixed(2)}
-                  </span>
-                </div>
+                <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                  {clip.creatorName}
+                </p>
               </div>
             </div>
           ))}

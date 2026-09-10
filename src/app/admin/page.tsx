@@ -2,19 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, ShieldAlert, Trophy, Users, Wallet } from "lucide-react";
+import { ChevronRight, Briefcase, ShieldAlert, Trophy, Users } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import ComingSoon from "@/components/dashboard/ComingSoon";
-import { subscribeToAllUsers, type AppUser } from "@/lib/firebase-helpers";
+import { subscribeToAllUsers, subscribeToActiveCampaigns, type AppUser, type Campaign } from "@/lib/firebase-helpers";
 import { subscribeToCompetitions, type Competition } from "@/lib/competitions";
 import { subscribeToPendingClips, type Clip } from "@/lib/clips";
-import { subscribeToAllOrders, type Order } from "@/lib/orders";
 
 export default function AdminOverviewPage() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [pendingClips, setPendingClips] = useState<Clip[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,17 +23,16 @@ export default function AdminOverviewPage() {
     });
     const unsubCompetitions = subscribeToCompetitions(setCompetitions);
     const unsubClips = subscribeToPendingClips(setPendingClips);
-    const unsubOrders = subscribeToAllOrders(setOrders);
+    const unsubCampaigns = subscribeToActiveCampaigns(setActiveCampaigns);
     return () => {
       unsubUsers();
       unsubCompetitions();
       unsubClips();
-      unsubOrders();
+      unsubCampaigns();
     };
   }, []);
 
   const activeCompetitions = competitions.filter((c) => c.status === "Active");
-  const revenue = orders.reduce((sum, o) => sum + o.amount, 0);
   const recentSignups = [...users]
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
     .slice(0, 5);
@@ -48,7 +46,7 @@ export default function AdminOverviewPage() {
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={Users} label="Total Users" value={String(users.length)} />
-        <StatCard icon={Wallet} label="Clip Sales Volume" value={`₦${revenue.toFixed(2)}`} />
+        <StatCard icon={Briefcase} label="Active Campaigns" value={String(activeCampaigns.length)} />
         <StatCard icon={Trophy} label="Active Contests" value={String(activeCompetitions.length)} />
         <StatCard icon={ShieldAlert} label="Pending Moderation" value={String(pendingClips.length)} />
       </div>

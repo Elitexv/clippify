@@ -125,16 +125,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // --- orders (clip licenses) ---
-    match /orders/{orderId} {
-      allow read: if isSignedIn()
-        && (isAdmin() || resource.data.buyerId == request.auth.uid || resource.data.creatorId == request.auth.uid);
-
-      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
-
-      allow update, delete: if false;
-    }
-
     // --- transactions (payment attempt ledger — both successful and failed) ---
     match /transactions/{transactionId} {
       allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);

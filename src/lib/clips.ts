@@ -24,7 +24,6 @@ export type Clip = {
   creatorName: string;
   title: string;
   category: string;
-  price: number;
   link: string;
   videoUrl: string;
   status: ClipStatus;
@@ -47,7 +46,6 @@ export async function createClip({
   creatorName,
   title,
   category,
-  price,
   link = "",
   videoUrl = "",
   status = "pending",
@@ -58,7 +56,6 @@ export async function createClip({
   creatorName: string;
   title: string;
   category: string;
-  price: number;
   link?: string;
   videoUrl?: string;
   // Only "approved" here actually goes through — the Firestore rule independently
@@ -73,7 +70,6 @@ export async function createClip({
     creatorName,
     title,
     category,
-    price,
     link,
     videoUrl,
     status,
@@ -146,16 +142,14 @@ export async function setClipStatus(clipId: string, status: ClipStatus) {
 export type FavoriteClip = {
   clipId: string;
   title: string;
-  price: number;
   creatorName: string;
   addedAt: Timestamp | null;
 };
 
-export async function addFavorite(userId: string, clip: Pick<Clip, "id" | "title" | "price" | "creatorName">) {
+export async function addFavorite(userId: string, clip: Pick<Clip, "id" | "title" | "creatorName">) {
   await setDoc(doc(db, "users", userId, "favorites", clip.id), {
     clipId: clip.id,
     title: clip.title,
-    price: clip.price,
     creatorName: clip.creatorName,
     addedAt: serverTimestamp(),
   });

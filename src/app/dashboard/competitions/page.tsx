@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import ComingSoon from "@/components/dashboard/ComingSoon";
 import { subscribeToActiveCampaigns, type Campaign } from "@/lib/firebase-helpers";
 import { createClip, subscribeToClipsForUser, uploadClipVideo, type Clip, type ClipStatus } from "@/lib/clips";
-import { getPublicSettings, parseCurrency } from "@/lib/platform-settings";
+import { getPublicSettings } from "@/lib/platform-settings";
 
 const categories = ["Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 
@@ -111,58 +111,68 @@ function CreatorCampaignsContent() {
             return (
               <div
                 key={campaign.id}
-                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm shadow-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-[#111] dark:shadow-none"
+                className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm shadow-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-[#111] dark:shadow-none"
               >
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-100 text-black dark:bg-yellow-400/10 dark:text-yellow-400">
-                  <Briefcase className="h-5 w-5" />
-                </span>
-                <p className="mt-4 font-semibold text-slate-900 dark:text-white">{campaign.title}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Posted by {campaign.brandName || "a brand"}
-                </p>
-                {campaign.brief && (
-                  <p className="mt-2 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
-                    {campaign.brief}
-                  </p>
+                {campaign.flyerUrl ? (
+                  <div className="relative h-32 w-full bg-slate-100 dark:bg-white/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={campaign.flyerUrl} alt="" className="h-full w-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="flex h-32 w-full items-center justify-center bg-gradient-to-br from-yellow-400/20 to-amber-500/20 dark:from-yellow-400/10 dark:to-amber-500/10">
+                    <Briefcase className="h-8 w-8 text-amber-500/60 dark:text-yellow-400/40" />
+                  </div>
                 )}
 
-                <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-white/5">
-                  <span className="font-bold text-amber-600 dark:text-yellow-400">
-                    ₦{campaign.budget.toFixed(2)} budget
-                  </span>
-                  {campaign.deadline && (
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {campaign.deadline}
+                <div className="p-6">
+                  <p className="font-semibold text-slate-900 dark:text-white">{campaign.title}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Posted by {campaign.brandName || "a brand"}
+                  </p>
+                  {campaign.brief && (
+                    <p className="mt-2 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
+                      {campaign.brief}
+                    </p>
+                  )}
+
+                  <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-white/5">
+                    <span className="font-bold text-amber-600 dark:text-yellow-400">
+                      ₦{campaign.budget.toFixed(2)} budget
                     </span>
+                    {campaign.deadline && (
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {campaign.deadline}
+                      </span>
+                    )}
+                  </div>
+
+                  {campaign.channelLink && (
+                    <a
+                      href={campaign.channelLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 block truncate text-xs text-amber-600 hover:underline dark:text-yellow-400"
+                    >
+                      {campaign.channelLink}
+                    </a>
+                  )}
+
+                  {submission && badge && BadgeIcon ? (
+                    <span
+                      className={`mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg py-2.5 text-center text-sm font-semibold ${badge.cls}`}
+                    >
+                      <BadgeIcon className="h-4 w-4" />
+                      {badge.label}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setActiveCampaign(campaign)}
+                      className="mt-4 w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                    >
+                      Submit a Clip
+                    </button>
                   )}
                 </div>
-
-                {campaign.channelLink && (
-                  <a
-                    href={campaign.channelLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 block truncate text-xs text-amber-600 hover:underline dark:text-yellow-400"
-                  >
-                    {campaign.channelLink}
-                  </a>
-                )}
-
-                {submission && badge && BadgeIcon ? (
-                  <span
-                    className={`mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg py-2.5 text-center text-sm font-semibold ${badge.cls}`}
-                  >
-                    <BadgeIcon className="h-4 w-4" />
-                    {badge.label}
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => setActiveCampaign(campaign)}
-                    className="mt-4 w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-95"
-                  >
-                    Submit a Clip
-                  </button>
-                )}
               </div>
             );
           })}
@@ -222,7 +232,6 @@ function SubmitClipModal({
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [category, setCategory] = useState(categories[0]);
-  const [price, setPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -244,8 +253,8 @@ function SubmitClipModal({
     e.preventDefault();
     setError("");
     const hasSource = mode === "link" ? link.trim() : !!videoFile;
-    if (!title.trim() || !hasSource || !price.trim()) {
-      setError("Fill in the clip title, price, and a link or video file.");
+    if (!title.trim() || !hasSource) {
+      setError("Fill in the clip title and a link or video file.");
       return;
     }
 
@@ -258,7 +267,6 @@ function SubmitClipModal({
         creatorName: userName,
         title: title.trim(),
         category,
-        price: parseCurrency(price),
         link: mode === "link" ? link.trim() : "",
         videoUrl,
         status: autoModeration ? "approved" : "pending",
@@ -411,26 +419,15 @@ function SubmitClipModal({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Category</label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass}>
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Price</label>
-                  <input
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="e.g. ₦12"
-                    className={inputClass}
-                  />
-                </div>
+              <div>
+                <label className={labelClass}>Category</label>
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass}>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}

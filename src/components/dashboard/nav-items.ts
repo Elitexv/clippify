@@ -13,7 +13,6 @@ import {
   Search,
   Settings,
   ShieldCheck,
-  ShoppingBag,
   Trophy,
   UserCog,
   Users,
@@ -36,7 +35,6 @@ export const accountNavItems: NavItem[] = [
   { label: "Campaigns", href: "/dashboard/competitions", icon: Briefcase, roles: ["creator"] },
   { label: "My Campaigns", href: "/dashboard/campaigns", icon: ClipboardList, roles: ["brand"] },
   { label: "Hosted Contests", href: "/dashboard/hosted-events", icon: Megaphone, roles: ["brand"] },
-  { label: "My Orders", href: "/dashboard/orders", icon: ShoppingBag, roles: ["brand"] },
   { label: "Earnings", href: "/dashboard/earnings", icon: DollarSign, roles: ["creator"] },
   { label: "Favorites", href: "/dashboard/favorites", icon: Heart },
 ];

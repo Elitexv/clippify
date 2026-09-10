@@ -1,29 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Banknote, CreditCard, Film, Heart, Landmark, Loader2, Search, X, Zap } from "lucide-react";
+import { Film, Heart, Search } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { addFavorite, fetchFavoriteIds, removeFavorite, subscribeToApprovedClips, type Clip } from "@/lib/clips";
-import { createOrder } from "@/lib/orders";
-import { payWithPaystack } from "@/lib/paystack";
-import { recordTransaction } from "@/lib/transactions";
-import {
-  defaultPublicSettings as defaultSettings,
-  getPublicSettings,
-  providerMeta,
-  type PublicPlatformSettings,
-  type ProviderId,
-} from "@/lib/platform-settings";
 
 const categories = ["All", "Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
-
-const providerIcon: Record<ProviderId, typeof CreditCard> = {
-  stripe: CreditCard,
-  flutterwave: Zap,
-  paystack: Banknote,
-  bank: Landmark,
-};
 
 export default function BrowseClipsPage() {
   return (
@@ -40,7 +23,6 @@ function BrowseClipsContent() {
   const [clips, setClips] = useState<Clip[]>([]);
   const [loading, setLoading] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [checkoutClip, setCheckoutClip] = useState<Clip | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToApprovedClips((next) => {
@@ -91,7 +73,7 @@ function BrowseClipsContent() {
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Browse Clips</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Find ready-to-use clips from top creators.
+        See what clippers have submitted for campaigns across the platform.
       </p>
 
       <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -137,7 +119,7 @@ function BrowseClipsContent() {
           </p>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {clips.length === 0
-              ? "Once a creator uploads a clip and it clears moderation, it'll show up here."
+              ? "Once a creator submits a clip for a campaign and it clears moderation, it'll show up here."
               : "Try a different category or search term."}
           </p>
         </div>
@@ -150,7 +132,7 @@ function BrowseClipsContent() {
             >
               <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950">
                 {clip.videoUrl ? (
-                  <video src={clip.videoUrl} className="h-full w-full object-cover" muted />
+                  <video src={clip.videoUrl} className="h-full w-full object-cover" muted controls />
                 ) : (
                   <Film className="h-8 w-8 text-white/30" />
                 )}
@@ -168,228 +150,22 @@ function BrowseClipsContent() {
                 <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                   {clip.title}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{clip.creatorName}</p>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-amber-600 dark:text-yellow-400">
-                    ₦{clip.price.toFixed(2)}
+                <div className="mt-0.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span className="truncate">{clip.creatorName}</span>
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-white/10 dark:text-slate-400">
+                    {clip.category}
                   </span>
-                  <button
-                    onClick={() => setCheckoutClip(clip)}
-                    className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold text-white transition-transform duration-200 hover:scale-105 active:scale-95 dark:bg-yellow-400 dark:text-black"
-                  >
-                    License
-                  </button>
                 </div>
+                {clip.campaignTitle && (
+                  <p className="mt-1 truncate text-[11px] text-amber-600 dark:text-yellow-400">
+                    For: {clip.campaignTitle}
+                  </p>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
-
-      {checkoutClip && user && (
-        <LicenseCheckoutModal
-          clip={checkoutClip}
-          buyerId={user.id}
-          buyerName={user.name}
-          buyerEmail={user.email}
-          onClose={() => setCheckoutClip(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-function LicenseCheckoutModal({
-  clip,
-  buyerId,
-  buyerName,
-  buyerEmail,
-  onClose,
-}: {
-  clip: Clip;
-  buyerId: string;
-  buyerName: string;
-  buyerEmail: string;
-  onClose: () => void;
-}) {
-  const [settings, setSettings] = useState<PublicPlatformSettings>(defaultSettings);
-  const [loading, setLoading] = useState(true);
-  const [selectedMethod, setSelectedMethod] = useState<ProviderId | null>(null);
-  const [paying, setPaying] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    getPublicSettings().then((s) => {
-      setSettings(s);
-      setLoading(false);
-    });
-  }, []);
-
-  const enabledMethods = settings.liveProviders;
-  const method = selectedMethod ?? enabledMethods[0] ?? null;
-
-  const handlePay = async () => {
-    setPaying(true);
-    setError("");
-    try {
-      let paymentReference: string | undefined;
-
-      if (method === "paystack") {
-        const publicKey = settings.providerPublicKeys.paystack;
-        if (!publicKey) throw new Error("Paystack isn't fully configured yet. Ask an admin to check Manage Payments.");
-        const reference = `clippifi-clip-${clip.id}-${Date.now()}`;
-        const result = await payWithPaystack({
-          publicKey,
-          email: buyerEmail,
-          amountUsd: clip.price,
-          reference,
-        });
-        if (!result) {
-          await recordTransaction({
-            type: "clip_license",
-            status: "failed",
-            userId: buyerId,
-            userName: buyerName,
-            amount: clip.price,
-            provider: method,
-            reference,
-            failureReason: "Payment window closed before completion",
-            relatedTitle: clip.title,
-          }).catch((err) => console.error("Failed to record transaction:", err));
-          setPaying(false);
-          return;
-        }
-        paymentReference = result.reference;
-        await recordTransaction({
-          type: "clip_license",
-          status: "success",
-          userId: buyerId,
-          userName: buyerName,
-          amount: clip.price,
-          provider: method,
-          reference: paymentReference,
-          relatedTitle: clip.title,
-        }).catch((err) => console.error("Failed to record transaction:", err));
-      }
-
-      await createOrder({
-        buyerId,
-        buyerName,
-        clipId: clip.id,
-        clipTitle: clip.title,
-        creatorId: clip.creatorId,
-        amount: clip.price,
-        paymentProvider: method ?? undefined,
-        paymentReference,
-      });
-      setDone(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed. Please try again.");
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#111]"
-      >
-        {done ? (
-          <div className="flex flex-col items-center py-4 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400">
-              <Heart className="h-6 w-6" />
-            </span>
-            <p className="mt-3 font-semibold text-slate-900 dark:text-white">Clip licensed</p>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              &ldquo;{clip.title}&rdquo; is now in your Orders.
-            </p>
-            <button
-              onClick={onClose}
-              className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white dark:bg-yellow-400 dark:text-black"
-            >
-              Done
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">License clip</p>
-                <p className="mt-0.5 font-semibold text-slate-900 dark:text-white">{clip.title}</p>
-              </div>
-              <button
-                onClick={onClose}
-                aria-label="Close"
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 p-3 text-sm dark:bg-white/5">
-              <span className="text-slate-500 dark:text-slate-400">Total</span>
-              <span className="font-bold text-amber-600 dark:text-yellow-400">₦{clip.price.toFixed(2)}</span>
-            </div>
-
-            {loading ? (
-              <div className="mt-4 flex justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-              </div>
-            ) : enabledMethods.length === 0 ? (
-              <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">
-                No payment providers are connected yet. Ask an admin to add API keys in Manage
-                Payments.
-              </p>
-            ) : (
-              <div className="mt-4 flex flex-col gap-2">
-                {enabledMethods.map((m) => {
-                  const Icon = providerIcon[m];
-                  return (
-                    <label
-                      key={m}
-                      className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                        method === m
-                          ? "border-yellow-400 bg-yellow-50 dark:border-yellow-400/40 dark:bg-yellow-400/5"
-                          : "border-slate-200 dark:border-white/10"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="license-method"
-                        checked={method === m}
-                        onChange={() => setSelectedMethod(m)}
-                        className="h-4 w-4 accent-amber-500"
-                      />
-                      <Icon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      <span className="text-slate-700 dark:text-slate-300">{providerMeta[m].name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-
-            {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-            <button
-              onClick={handlePay}
-              disabled={!method || paying || enabledMethods.length === 0}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {paying ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing…
-                </>
-              ) : (
-                `Pay ₦${clip.price.toFixed(2)}`
-              )}
-            </button>
-          </>
-        )}
-      </div>
     </div>
   );
 }
