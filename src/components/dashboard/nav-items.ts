@@ -8,12 +8,10 @@ import {
   Home,
   KeyRound,
   LayoutDashboard,
-  Megaphone,
   Receipt,
   Search,
   Settings,
   ShieldCheck,
-  Trophy,
   UserCog,
   Users,
   Wallet,
@@ -34,7 +32,6 @@ export const accountNavItems: NavItem[] = [
   { label: "Hire Streamers", href: "/dashboard/hire", icon: Users, roles: ["brand"] },
   { label: "Campaigns", href: "/dashboard/competitions", icon: Briefcase, roles: ["creator"] },
   { label: "My Campaigns", href: "/dashboard/campaigns", icon: ClipboardList, roles: ["brand"] },
-  { label: "Hosted Contests", href: "/dashboard/hosted-events", icon: Megaphone, roles: ["brand"] },
   { label: "Earnings", href: "/dashboard/earnings", icon: DollarSign, roles: ["creator"] },
   { label: "Favorites", href: "/dashboard/favorites", icon: Heart },
 ];
@@ -52,14 +49,14 @@ export const accountMobileNavItems: NavItem[] = [
 export const adminMobileNavItems: NavItem[] = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: UserCog },
-  { label: "Contests", href: "/admin/competitions", icon: Trophy },
+  { label: "Campaigns", href: "/admin/campaigns", icon: Briefcase },
   { label: "Moderation", href: "/admin/moderation", icon: ShieldCheck },
 ];
 
 export const adminNavItems: NavItem[] = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: UserCog },
-  { label: "Contests", href: "/admin/competitions", icon: Trophy },
+  { label: "Campaigns", href: "/admin/campaigns", icon: Briefcase },
   { label: "Moderation", href: "/admin/moderation", icon: ShieldCheck },
   { label: "Payouts", href: "/admin/payouts", icon: Wallet },
   { label: "Transactions", href: "/admin/transactions", icon: Receipt },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Film, Heart, Search } from "lucide-react";
+import { Eye, Film, Heart, Search } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { addFavorite, fetchFavoriteIds, removeFavorite, subscribeToApprovedClips, type Clip } from "@/lib/clips";
@@ -160,6 +160,20 @@ function BrowseClipsContent() {
                   <p className="mt-1 truncate text-[11px] text-amber-600 dark:text-yellow-400">
                     For: {clip.campaignTitle}
                   </p>
+                )}
+                {(clip.viewCount !== undefined || clip.likeCount !== undefined) && (
+                  <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-400">
+                    {clip.viewCount !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" /> {clip.viewCount.toLocaleString()}
+                      </span>
+                    )}
+                    {clip.likeCount !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-3 w-3" /> {clip.likeCount.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

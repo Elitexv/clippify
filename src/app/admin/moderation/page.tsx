@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Film, ShieldCheck, X } from "lucide-react";
+import { Check, Eye, Film, Heart, ShieldCheck, X } from "lucide-react";
 import { setClipStatus, subscribeToPendingClips, type Clip } from "@/lib/clips";
 
 export default function ModerationPage() {
@@ -74,6 +74,20 @@ export default function ModerationPage() {
                   <p className="mt-0.5 text-[11px] text-amber-600 dark:text-yellow-400">
                     Submitted for campaign: {clip.campaignTitle}
                   </p>
+                )}
+                {(clip.viewCount !== undefined || clip.likeCount !== undefined) && (
+                  <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-400">
+                    {clip.viewCount !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" /> {clip.viewCount.toLocaleString()}
+                      </span>
+                    )}
+                    {clip.likeCount !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-3 w-3" /> {clip.likeCount.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {clip.link && (
                   <a

@@ -61,8 +61,15 @@ service cloud.firestore {
           )
         );
 
-      // Only admin moderation (approve/reject) can change a clip afterward.
-      allow update: if isAdmin() && onlyChanged(['status']);
+      // Only moderation (approve/reject) can change a clip afterward — admin always,
+      // or the brand behind the campaign this clip was submitted to (if any).
+      allow update: if onlyChanged(['status']) && (
+        isAdmin()
+        || (
+          isSignedIn() && 'campaignId' in resource.data
+          && get(/databases/$(database)/documents/campaigns/$(resource.data.campaignId)).data.brandId == request.auth.uid
+        )
+      );
 
       allow delete: if false;
     }
@@ -79,48 +86,6 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.brandId == request.auth.uid;
 
       allow update: if isAdmin() || (isSignedIn() && resource.data.brandId == request.auth.uid);
-
-      allow delete: if false;
-    }
-
-    // --- competitions ---
-    match /competitions/{competitionId} {
-      allow read: if isSignedIn();
-
-      // Only admins create competitions (they pick the real hostId from
-      // the users collection — see admin/competitions).
-      allow create: if isAdmin();
-
-      // Admins can change anything. Any signed-in user may bump `entries`
-      // by exactly 1 as part of submitting an entry (see /submissions).
-      allow update: if isAdmin() || (
-        isSignedIn() && onlyChanged(['entries'])
-        && request.resource.data.entries == resource.data.entries + 1
-      );
-
-      allow delete: if false;
-    }
-
-    // --- submissions (competition entries) ---
-    match /submissions/{submissionId} {
-      allow read: if isSignedIn();
-
-      allow create: if isSignedIn()
-        && request.resource.data.submittedByUid == request.auth.uid
-        && request.resource.data.status == 'Pending'
-        && request.resource.data.withdrawn == false;
-
-      allow update: if isAdmin()
-        || (
-          // The brand hosting the competition can approve/reject.
-          isSignedIn() && onlyChanged(['status'])
-          && get(/databases/$(database)/documents/competitions/$(resource.data.competitionId)).data.hostId == request.auth.uid
-        )
-        || (
-          // The streamer who submitted can withdraw their own entry.
-          isSignedIn() && resource.data.submittedByUid == request.auth.uid
-          && onlyChanged(['withdrawn']) && request.resource.data.withdrawn == true
-        );
 
       allow delete: if false;
     }

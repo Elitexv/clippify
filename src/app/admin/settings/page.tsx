@@ -163,7 +163,7 @@ export default function AdminSettingsPage() {
         </section>
 
         <section className="rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Moderation & contests</h2>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Moderation</h2>
           <div className="mt-4 flex flex-col gap-4">
             <SettingToggle
               label="Auto-approve clip submissions"
@@ -171,12 +171,28 @@ export default function AdminSettingsPage() {
               checked={settings.autoModeration}
               onChange={(v) => update("autoModeration", v)}
             />
-            <SettingToggle
-              label="Allow brand-hosted contests"
-              description="Let brand accounts create and manage their own clipping contests."
-              checked={settings.allowHostedCompetitions}
-              onChange={(v) => update("allowHostedCompetitions", v)}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Integrations</h2>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            When a creator submits a YouTube link, this key is used to auto-fetch its view and
+            like counts.
+          </p>
+          <div className="mt-4">
+            <label className={labelClass}>YouTube Data API key</label>
+            <input
+              value={settings.youtubeApiKey}
+              onChange={(e) => update("youtubeApiKey", e.target.value)}
+              placeholder="AIza…"
+              className={inputClass}
             />
+            <p className="mt-1.5 text-xs text-slate-400">
+              Free from Google Cloud Console — create a project, enable &quot;YouTube Data API
+              v3&quot;, then create an API key under Credentials. Restrict it by HTTP referrer to
+              your domain; this key is safe to expose in the browser once restricted.
+            </p>
           </div>
         </section>
 

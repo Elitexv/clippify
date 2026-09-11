@@ -2,18 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Briefcase, ShieldAlert, Trophy, Users } from "lucide-react";
+import { Briefcase, ChevronRight, ShieldAlert, Users } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import ComingSoon from "@/components/dashboard/ComingSoon";
-import { subscribeToAllUsers, subscribeToActiveCampaigns, type AppUser, type Campaign } from "@/lib/firebase-helpers";
-import { subscribeToCompetitions, type Competition } from "@/lib/competitions";
+import { subscribeToAllUsers, subscribeToAllCampaigns, type AppUser, type Campaign } from "@/lib/firebase-helpers";
 import { subscribeToPendingClips, type Clip } from "@/lib/clips";
 
 export default function AdminOverviewPage() {
   const [users, setUsers] = useState<AppUser[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [pendingClips, setPendingClips] = useState<Clip[]>([]);
-  const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,18 +19,16 @@ export default function AdminOverviewPage() {
       setUsers(next);
       setLoading(false);
     });
-    const unsubCompetitions = subscribeToCompetitions(setCompetitions);
     const unsubClips = subscribeToPendingClips(setPendingClips);
-    const unsubCampaigns = subscribeToActiveCampaigns(setActiveCampaigns);
+    const unsubCampaigns = subscribeToAllCampaigns(setCampaigns);
     return () => {
       unsubUsers();
-      unsubCompetitions();
       unsubClips();
       unsubCampaigns();
     };
   }, []);
 
-  const activeCompetitions = competitions.filter((c) => c.status === "Active");
+  const activeCampaigns = campaigns.filter((c) => c.status === "active");
   const recentSignups = [...users]
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
     .slice(0, 5);
@@ -47,7 +43,7 @@ export default function AdminOverviewPage() {
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={Users} label="Total Users" value={String(users.length)} />
         <StatCard icon={Briefcase} label="Active Campaigns" value={String(activeCampaigns.length)} />
-        <StatCard icon={Trophy} label="Active Contests" value={String(activeCompetitions.length)} />
+        <StatCard icon={Briefcase} label="Total Campaigns" value={String(campaigns.length)} />
         <StatCard icon={ShieldAlert} label="Pending Moderation" value={String(pendingClips.length)} />
       </div>
 
@@ -93,21 +89,21 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      <SectionHeader title="Active Contests" href="/admin/competitions" />
-      {activeCompetitions.length === 0 ? (
-        <ComingSoon icon={Trophy} title="No active contests" text="Create one from the Contests page." />
+      <SectionHeader title="Active Campaigns" href="/admin/campaigns" />
+      {activeCampaigns.length === 0 ? (
+        <ComingSoon icon={Briefcase} title="No active campaigns" text="Brands post campaigns from Post a Campaign." />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {activeCompetitions.map((c) => (
+          {activeCampaigns.slice(0, 6).map((c) => (
             <div
               key={c.id}
               className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm shadow-slate-100 dark:border-white/10 dark:bg-[#111] dark:shadow-none"
             >
               <p className="text-sm font-semibold text-slate-900 dark:text-white">{c.title}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Hosted by {c.hostName}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">by {c.brandName}</p>
               <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="font-semibold text-amber-600 dark:text-yellow-400">{c.prize}</span>
-                <span className="text-slate-500 dark:text-slate-400">{c.entries} entries</span>
+                <span className="font-semibold text-amber-600 dark:text-yellow-400">₦{c.budget.toFixed(2)}</span>
+                {c.deadline && <span className="text-slate-500 dark:text-slate-400">{c.deadline}</span>}
               </div>
             </div>
           ))}

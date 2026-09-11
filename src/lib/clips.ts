@@ -31,6 +31,15 @@ export type Clip = {
   // (see /dashboard/competitions) rather than uploaded standalone.
   campaignId?: string;
   campaignTitle?: string;
+  // Copied from the campaign's payoutPerClip at submission time (not looked up live)
+  // so a creator's earnings reflect the rate that was in effect when they submitted —
+  // and so Earnings/Payouts never need to read other users' campaign documents, which
+  // Firestore rules only allow for a campaign's own brand or an admin.
+  payoutAtSubmission?: number;
+  // Auto-fetched from the YouTube Data API when `link` is a YouTube URL — see
+  // src/lib/youtube.ts. Absent for non-YouTube links or when no API key is configured.
+  viewCount?: number;
+  likeCount?: number;
   createdAt: Timestamp | null;
 };
 
@@ -51,6 +60,9 @@ export async function createClip({
   status = "pending",
   campaignId,
   campaignTitle,
+  payoutAtSubmission,
+  viewCount,
+  likeCount,
 }: {
   creatorId: string;
   creatorName: string;
@@ -64,6 +76,9 @@ export async function createClip({
   status?: ClipStatus;
   campaignId?: string;
   campaignTitle?: string;
+  payoutAtSubmission?: number;
+  viewCount?: number;
+  likeCount?: number;
 }) {
   const docRef = await addDoc(collection(db, "clips"), {
     creatorId,
@@ -74,6 +89,9 @@ export async function createClip({
     videoUrl,
     status,
     ...(campaignId ? { campaignId, campaignTitle: campaignTitle ?? "" } : {}),
+    ...(payoutAtSubmission !== undefined ? { payoutAtSubmission } : {}),
+    ...(viewCount !== undefined ? { viewCount } : {}),
+    ...(likeCount !== undefined ? { likeCount } : {}),
     createdAt: serverTimestamp(),
   });
   return docRef.id;

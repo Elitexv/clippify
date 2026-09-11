@@ -12,11 +12,14 @@ export type PlatformSettings = {
   commissionRate: string;
   payoutSchedule: "Weekly" | "Biweekly" | "Monthly";
   autoModeration: boolean;
-  allowHostedCompetitions: boolean;
   maintenanceMode: boolean;
   campaignProcessingFee: string;
   minCampaignBudget: string;
   paymentProviders: Record<ProviderId, ProviderConfig>;
+  // Restricted by HTTP referrer in Google Cloud Console — safe to read client-side,
+  // same trust model as a payment provider's public key. Used to pull view/like counts
+  // for YouTube links a creator submits (see src/lib/youtube.ts).
+  youtubeApiKey: string;
 };
 
 export type KeyField = {
@@ -70,10 +73,10 @@ export const defaultPlatformSettings: PlatformSettings = {
   commissionRate: "15",
   payoutSchedule: "Biweekly",
   autoModeration: false,
-  allowHostedCompetitions: true,
   maintenanceMode: false,
   campaignProcessingFee: "5",
   minCampaignBudget: "1000",
+  youtubeApiKey: "",
   paymentProviders: {
     stripe: emptyProvider(),
     flutterwave: emptyProvider(),
@@ -96,8 +99,8 @@ export type PublicPlatformSettings = {
   // any signed-in user to read, since that's exactly what a "public key" is for.
   providerPublicKeys: Partial<Record<ProviderId, string>>;
   autoModeration: boolean;
-  allowHostedCompetitions: boolean;
   maintenanceMode: boolean;
+  youtubeApiKey: string;
 };
 
 export const defaultPublicSettings: PublicPlatformSettings = {
@@ -106,8 +109,8 @@ export const defaultPublicSettings: PublicPlatformSettings = {
   liveProviders: [],
   providerPublicKeys: {},
   autoModeration: defaultPlatformSettings.autoModeration,
-  allowHostedCompetitions: defaultPlatformSettings.allowHostedCompetitions,
   maintenanceMode: defaultPlatformSettings.maintenanceMode,
+  youtubeApiKey: defaultPlatformSettings.youtubeApiKey,
 };
 
 function normalize(raw: unknown): PlatformSettings {
@@ -159,8 +162,8 @@ export async function savePlatformSettings(settings: PlatformSettings) {
     liveProviders,
     providerPublicKeys,
     autoModeration: settings.autoModeration,
-    allowHostedCompetitions: settings.allowHostedCompetitions,
     maintenanceMode: settings.maintenanceMode,
+    youtubeApiKey: settings.youtubeApiKey,
   };
   await setDoc(PUBLIC_SETTINGS_DOC, publicSettings, { merge: false });
 }

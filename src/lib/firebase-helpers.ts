@@ -10,6 +10,7 @@ import {
   getDocs,
   onSnapshot,
   Timestamp,
+  updateDoc,
 } from "firebase/firestore";
 import {
   createUserWithEmailAndPassword,
@@ -364,6 +365,10 @@ export type Campaign = {
   deadline: string;
   flyerUrl: string;
   status: CampaignStatus;
+  // Amount a creator earns when one of their clip submissions to this campaign gets
+  // approved — see clips.ts (Clip.campaignId) and Earnings, which sums this across a
+  // creator's own approved campaign clips.
+  payoutPerClip: number;
   paymentProvider?: string;
   paymentReference?: string;
   createdAt: Timestamp | null;
@@ -379,6 +384,7 @@ export async function createCampaign({
   deadline,
   flyerUrl,
   status = "draft",
+  payoutPerClip = 0,
   paymentProvider,
   paymentReference,
 }: {
@@ -391,6 +397,7 @@ export async function createCampaign({
   deadline?: string;
   flyerUrl?: string;
   status?: CampaignStatus;
+  payoutPerClip?: number;
   paymentProvider?: string;
   paymentReference?: string;
 }) {
@@ -404,12 +411,37 @@ export async function createCampaign({
     deadline: deadline ?? "",
     flyerUrl: flyerUrl ?? "",
     status,
+    payoutPerClip,
     ...(paymentProvider ? { paymentProvider } : {}),
     ...(paymentReference ? { paymentReference } : {}),
     createdAt: serverTimestamp(),
   });
 
   return docRef.id;
+}
+
+export async function updateCampaignStatus(campaignId: string, status: CampaignStatus) {
+  await updateDoc(doc(db, "campaigns", campaignId), { status });
+}
+
+export async function updateCampaignPayout(campaignId: string, payoutPerClip: number) {
+  await updateDoc(doc(db, "campaigns", campaignId), { payoutPerClip });
+}
+
+// Admin-wide view across every brand's campaigns (see /admin/campaigns).
+export function subscribeToAllCampaigns(callback: (campaigns: Campaign[]) => void) {
+  return onSnapshot(
+    collection(db, "campaigns"),
+    (snap) => {
+      const campaigns = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Campaign);
+      campaigns.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+      callback(campaigns);
+    },
+    (error) => {
+      console.error("All campaigns listener error:", error);
+      callback([]);
+    },
+  );
 }
 
 export async function fetchCampaignsForUser(userId: string): Promise<Campaign[]> {

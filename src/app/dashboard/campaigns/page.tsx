@@ -2,12 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ClipboardList, ExternalLink, Loader2, Plus, XCircle } from "lucide-react";
+import { Check, CheckCircle2, ClipboardList, ExternalLink, Loader2, Plus, X, XCircle } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import ComingSoon from "@/components/dashboard/ComingSoon";
-import { subscribeToCampaignsForUser, type Campaign, type CampaignStatus } from "@/lib/firebase-helpers";
-import { subscribeToClipsForCampaign, type Clip, type ClipStatus } from "@/lib/clips";
+import {
+  subscribeToCampaignsForUser,
+  updateCampaignPayout,
+  updateCampaignStatus,
+  type Campaign,
+  type CampaignStatus,
+} from "@/lib/firebase-helpers";
+import { setClipStatus, subscribeToClipsForCampaign, type Clip, type ClipStatus } from "@/lib/clips";
+
+const statusOptions: CampaignStatus[] = ["draft", "active", "completed", "cancelled"];
 
 const statusStyle: Record<CampaignStatus, string> = {
   draft: "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300",
@@ -35,6 +43,8 @@ function MyCampaignsContent() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [entries, setEntries] = useState<Clip[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
+  const [payoutDrafts, setPayoutDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -60,13 +70,45 @@ function MyCampaignsContent() {
     return () => unsubs.forEach((u) => u());
   }, [campaignIds]);
 
+  const changeStatus = async (campaign: Campaign, status: CampaignStatus) => {
+    if (status === campaign.status) return;
+    setRowBusy((b) => ({ ...b, [campaign.id]: true }));
+    try {
+      await updateCampaignStatus(campaign.id, status);
+    } finally {
+      setRowBusy((b) => ({ ...b, [campaign.id]: false }));
+    }
+  };
+
+  const savePayout = async (campaign: Campaign) => {
+    const draft = payoutDrafts[campaign.id];
+    if (draft === undefined) return;
+    const amount = Number(draft);
+    if (!Number.isFinite(amount) || amount === campaign.payoutPerClip) return;
+    setRowBusy((b) => ({ ...b, [campaign.id]: true }));
+    try {
+      await updateCampaignPayout(campaign.id, amount);
+    } finally {
+      setRowBusy((b) => ({ ...b, [campaign.id]: false }));
+    }
+  };
+
+  const resolveClip = async (clipId: string, status: "approved" | "rejected") => {
+    setRowBusy((b) => ({ ...b, [clipId]: true }));
+    try {
+      await setClipStatus(clipId, status);
+    } finally {
+      setRowBusy((b) => ({ ...b, [clipId]: false }));
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Campaigns</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Campaigns you&apos;ve posted and the clips streamers have submitted to each one.
+            Manage your campaigns and approve or reject the clips streamers submit to each one.
           </p>
         </div>
         <Link
@@ -110,9 +152,18 @@ function MyCampaignsContent() {
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-semibold text-slate-900 dark:text-white">{c.title}</p>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${statusStyle[c.status]}`}>
-                    {c.status}
-                  </span>
+                  <select
+                    value={c.status}
+                    onChange={(e) => changeStatus(c, e.target.value as CampaignStatus)}
+                    disabled={rowBusy[c.id]}
+                    className={`shrink-0 rounded-full border-0 px-2 py-0.5 text-[11px] font-medium capitalize disabled:opacity-60 ${statusStyle[c.status]}`}
+                  >
+                    {statusOptions.map((s) => (
+                      <option key={s} value={s} className="bg-white text-slate-900 dark:bg-[#111] dark:text-white">
+                        {s}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <a
                   href={c.channelLink}
@@ -128,6 +179,21 @@ function MyCampaignsContent() {
                     ₦{c.budget.toFixed(2)} budget
                   </span>
                   {c.deadline && <span>{c.deadline}</span>}
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs dark:border-white/10">
+                  <span className="text-slate-500 dark:text-slate-400">Payout per approved clip</span>
+                  <div className="flex items-center gap-1 text-slate-900 dark:text-white">
+                    <span>₦</span>
+                    <input
+                      value={payoutDrafts[c.id] ?? String(c.payoutPerClip)}
+                      onChange={(e) => setPayoutDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
+                      onBlur={() => savePayout(c)}
+                      disabled={rowBusy[c.id]}
+                      placeholder="0"
+                      className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs disabled:opacity-60 dark:border-white/10 dark:bg-white/5"
+                    />
+                  </div>
                 </div>
 
                 {(() => {
@@ -161,18 +227,36 @@ function MyCampaignsContent() {
                                 {entry.creatorName} — {entry.title}
                               </span>
                             )}
-                            <span
-                              className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${style.cls}`}
-                            >
-                              <StatusIcon className="h-3 w-3" />
-                              {entry.status}
-                            </span>
+                            {entry.status === "pending" ? (
+                              <div className="flex shrink-0 items-center gap-1">
+                                <button
+                                  onClick={() => resolveClip(entry.id, "approved")}
+                                  disabled={rowBusy[entry.id]}
+                                  aria-label="Approve clip"
+                                  className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white transition-transform hover:scale-110 disabled:opacity-60"
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => resolveClip(entry.id, "rejected")}
+                                  disabled={rowBusy[entry.id]}
+                                  aria-label="Reject clip"
+                                  className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-600 transition-transform hover:scale-110 disabled:opacity-60 dark:bg-red-500/10 dark:text-red-400"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span
+                                className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${style.cls}`}
+                              >
+                                <StatusIcon className="h-3 w-3" />
+                                {entry.status}
+                              </span>
+                            )}
                           </div>
                         );
                       })}
-                      <p className="mt-1 text-[10px] text-slate-400">
-                        Clips are moderated platform-wide from Admin &gt; Moderation.
-                      </p>
                     </div>
                   );
                 })()}

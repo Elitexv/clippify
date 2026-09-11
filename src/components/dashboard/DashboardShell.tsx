@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,7 +15,6 @@ import {
 import { useAuth } from "@/lib/auth/auth-context";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
-import { getPublicSettings } from "@/lib/platform-settings";
 import {
   accountCreateItems,
   accountMobileNavItems,
@@ -25,8 +24,6 @@ import {
   isNavItemVisible,
   type NavItem,
 } from "./nav-items";
-
-const HOSTED_CONTESTS_HREF = "/dashboard/hosted-events";
 
 export default function DashboardShell({
   area,
@@ -38,23 +35,13 @@ export default function DashboardShell({
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  // Defaults to true so the nav item doesn't flash-then-disappear for the common case;
-  // corrected as soon as the real setting loads.
-  const [allowHostedCompetitions, setAllowHostedCompetitions] = useState(true);
-
-  useEffect(() => {
-    getPublicSettings().then((s) => setAllowHostedCompetitions(s.allowHostedCompetitions));
-  }, []);
 
   if (!user) return null;
-
-  const dropHostedContestsIfDisallowed = (item: NavItem) =>
-    allowHostedCompetitions || item.href !== HOSTED_CONTESTS_HREF;
 
   const navItems =
     area === "admin"
       ? adminNavItems
-      : accountNavItems.filter((item) => isNavItemVisible(item, user.role) && dropHostedContestsIfDisallowed(item));
+      : accountNavItems.filter((item) => isNavItemVisible(item, user.role));
   const createItems =
     area === "account"
       ? accountCreateItems.filter((item) => isNavItemVisible(item, user.role))
@@ -62,7 +49,7 @@ export default function DashboardShell({
   const mobileNavItems =
     area === "admin"
       ? adminMobileNavItems
-      : accountMobileNavItems.filter((item) => isNavItemVisible(item, user.role) && dropHostedContestsIfDisallowed(item));
+      : accountMobileNavItems.filter((item) => isNavItemVisible(item, user.role));
 
   const handleLogout = () => {
     logout();

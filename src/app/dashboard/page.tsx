@@ -12,21 +12,13 @@ import {
   Heart,
   Play,
   ShoppingBag,
-  Trophy,
 } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import StatCard from "@/components/dashboard/StatCard";
 import ComingSoon from "@/components/dashboard/ComingSoon";
 import { fetchFavoriteIds, subscribeToApprovedClips, subscribeToClipsForUser, type Clip } from "@/lib/clips";
-import {
-  subscribeToCompetitions,
-  subscribeToSubmissionsForUser,
-  type Competition,
-  type CompetitionSubmission,
-} from "@/lib/competitions";
 import { subscribeToCampaignsForUser, type Campaign } from "@/lib/firebase-helpers";
-import { parseCurrency } from "@/lib/platform-settings";
 
 const roleLabel: Record<string, string> = {
   brand: "Brand",
@@ -50,30 +42,22 @@ function DashboardHomeContent() {
 
   const [clips, setClips] = useState<Clip[]>([]);
   const [myClips, setMyClips] = useState<Clip[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [mySubmissions, setMySubmissions] = useState<CompetitionSubmission[]>([]);
   const [favoriteCount, setFavoriteCount] = useState(0);
 
   useEffect(() => {
     const unsubClips = subscribeToApprovedClips(setClips);
-    const unsubCompetitions = subscribeToCompetitions(setCompetitions);
-    return () => {
-      unsubClips();
-      unsubCompetitions();
-    };
+    return () => unsubClips();
   }, []);
 
   useEffect(() => {
     if (!user) return;
     const unsubMyClips = subscribeToClipsForUser(user.id, setMyClips);
     const unsubCampaigns = subscribeToCampaignsForUser(user.id, setCampaigns);
-    const unsubSubs = subscribeToSubmissionsForUser(user.id, setMySubmissions);
     fetchFavoriteIds(user.id).then((ids) => setFavoriteCount(ids.size));
     return () => {
       unsubMyClips();
       unsubCampaigns();
-      unsubSubs();
     };
   }, [user]);
 
@@ -122,12 +106,9 @@ function DashboardHomeContent() {
   };
 
   const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
-  const competitionWinnings = mySubmissions
-    .filter((s) => s.withdrawn)
-    .reduce((sum, s) => {
-      const comp = competitions.find((c) => c.id === s.competitionId);
-      return sum + parseCurrency(comp?.payout ?? "0");
-    }, 0);
+  const myEarnings = myClips
+    .filter((c) => c.status === "approved")
+    .reduce((sum, c) => sum + (c.payoutAtSubmission ?? 0), 0);
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -208,9 +189,8 @@ function DashboardHomeContent() {
         )}
         <StatCard icon={Heart} label="Favorites" value={String(favoriteCount)} />
         {showCreator && (
-          <StatCard icon={DollarSign} label="Contest Winnings" value={`₦${competitionWinnings.toFixed(2)}`} />
+          <StatCard icon={DollarSign} label="Earnings" value={`₦${myEarnings.toFixed(2)}`} />
         )}
-        <StatCard icon={Trophy} label="Contests Joined" value={String(mySubmissions.length)} />
       </div>
 
       <SectionHeader title="Featured Clips" href="/dashboard/browse" />
@@ -242,39 +222,6 @@ function DashboardHomeContent() {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      <SectionHeader title="Active Contests" href="/dashboard/contests" />
-      {competitions.filter((c) => c.status === "Active").length === 0 ? (
-        <ComingSoon icon={Trophy} title="No active contests" text="Check back soon for new contests to join." />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {competitions
-            .filter((comp) => comp.status === "Active")
-            .slice(0, 3)
-            .map((comp) => (
-              <div
-                key={comp.id}
-                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm shadow-slate-100 dark:border-white/10 dark:bg-[#111] dark:shadow-none"
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-100 text-black dark:bg-yellow-400/10 dark:text-yellow-400">
-                  <Trophy className="h-5 w-5" />
-                </span>
-                <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">{comp.title}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Hosted by {comp.hostName}</p>
-                <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold text-amber-600 dark:text-yellow-400">{comp.prize} prize</span>
-                  <span>{comp.entries} entries</span>
-                </div>
-                <Link
-                  href="/dashboard/contests"
-                  className="mt-4 block w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2 text-center text-xs font-semibold text-black transition-transform duration-200 hover:scale-[1.02]"
-                >
-                  View & join
-                </Link>
-              </div>
-            ))}
         </div>
       )}
 

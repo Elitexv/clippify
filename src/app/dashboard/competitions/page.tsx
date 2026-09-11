@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   Briefcase,
   CheckCircle2,
+  Eye,
+  Heart,
   Link2,
   Loader2,
-  Trophy,
   Upload,
   X,
   XCircle,
@@ -18,6 +18,7 @@ import ComingSoon from "@/components/dashboard/ComingSoon";
 import { subscribeToActiveCampaigns, type Campaign } from "@/lib/firebase-helpers";
 import { createClip, subscribeToClipsForUser, uploadClipVideo, type Clip, type ClipStatus } from "@/lib/clips";
 import { getPublicSettings } from "@/lib/platform-settings";
+import { extractYouTubeVideoId, fetchYouTubeStats, type YouTubeStats } from "@/lib/youtube";
 
 const categories = ["Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 
@@ -179,28 +180,6 @@ function CreatorCampaignsContent() {
         </div>
       )}
 
-      <div className="mt-10 flex items-center justify-between rounded-2xl border border-dashed border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#111]">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-100 text-black dark:bg-yellow-400/10 dark:text-yellow-400">
-            <Trophy className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-slate-900 dark:text-white">
-              Looking for prize contests instead?
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Join admin-hosted clipping contests and win cash prizes.
-            </p>
-          </div>
-        </div>
-        <Link
-          href="/dashboard/contests"
-          className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-        >
-          View Contests
-        </Link>
-      </div>
-
       {activeCampaign && user && (
         <SubmitClipModal
           campaign={activeCampaign}
@@ -236,6 +215,33 @@ function SubmitClipModal({
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [approvedInstantly, setApprovedInstantly] = useState(false);
+  const [youtubeApiKey, setYoutubeApiKey] = useState("");
+  const [stats, setStats] = useState<YouTubeStats | null>(null);
+  const [fetchingStats, setFetchingStats] = useState(false);
+  const [lastCheckedLink, setLastCheckedLink] = useState("");
+
+  useEffect(() => {
+    getPublicSettings().then((s) => setYoutubeApiKey(s.youtubeApiKey));
+  }, []);
+
+  const checkLinkForStats = async () => {
+    const trimmed = link.trim();
+    if (!trimmed || trimmed === lastCheckedLink) return;
+    setLastCheckedLink(trimmed);
+    const videoId = youtubeApiKey ? extractYouTubeVideoId(trimmed) : null;
+    if (!videoId) {
+      setStats(null);
+      return;
+    }
+    setFetchingStats(true);
+    try {
+      const result = await fetchYouTubeStats(videoId, youtubeApiKey);
+      setStats(result);
+      if (result && !title.trim()) setTitle(result.title);
+    } finally {
+      setFetchingStats(false);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -272,6 +278,9 @@ function SubmitClipModal({
         status: autoModeration ? "approved" : "pending",
         campaignId: campaign.id,
         campaignTitle: campaign.title,
+        payoutAtSubmission: campaign.payoutPerClip,
+        viewCount: stats?.viewCount,
+        likeCount: stats?.likeCount ?? undefined,
       });
       setApprovedInstantly(autoModeration);
       setDone(true);
@@ -369,11 +378,49 @@ function SubmitClipModal({
                       <input
                         type="url"
                         value={link}
-                        onChange={(e) => setLink(e.target.value)}
-                        placeholder="https://tiktok.com/@you/video/..."
+                        onChange={(e) => {
+                          setLink(e.target.value);
+                          setStats(null);
+                        }}
+                        onBlur={checkLinkForStats}
+                        placeholder="https://youtube.com/watch?v=... or any clip link"
                         className={`${inputClass} mt-0 pl-10`}
                       />
                     </div>
+                    {fetchingStats ? (
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Fetching video stats…
+                      </p>
+                    ) : stats ? (
+                      <div className="mt-2 flex items-center gap-2.5 rounded-lg bg-slate-50 p-2 dark:bg-white/5">
+                        {stats.thumbnailUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={stats.thumbnailUrl} alt="" className="h-10 w-16 shrink-0 rounded object-cover" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-slate-700 dark:text-slate-300">
+                            {stats.title}
+                          </p>
+                          <div className="mt-0.5 flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" /> {stats.viewCount.toLocaleString()}
+                            </span>
+                            {stats.likeCount !== null && (
+                              <span className="flex items-center gap-1">
+                                <Heart className="h-3 w-3" /> {stats.likeCount.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      youtubeApiKey && (
+                        <p className="mt-1.5 text-[11px] text-slate-400">
+                          Paste a YouTube link to auto-fetch its view and like counts.
+                        </p>
+                      )
+                    )}
                   </div>
                 ) : (
                   <div className="mt-3">

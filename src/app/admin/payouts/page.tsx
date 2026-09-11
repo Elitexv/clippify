@@ -5,35 +5,30 @@ import { DollarSign, Wallet } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import ComingSoon from "@/components/dashboard/ComingSoon";
 import { subscribeToAllUsers, type AppUser } from "@/lib/firebase-helpers";
-import { subscribeToAllSubmissions, subscribeToCompetitions, type Competition, type CompetitionSubmission } from "@/lib/competitions";
-import { parseCurrency } from "@/lib/platform-settings";
+import { subscribeToApprovedClips, type Clip } from "@/lib/clips";
 
 export default function PayoutsPage() {
-  const [submissions, setSubmissions] = useState<CompetitionSubmission[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [clips, setClips] = useState<Clip[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubSubs = subscribeToAllSubmissions((next) => {
-      setSubmissions(next);
+    const unsubClips = subscribeToApprovedClips((next) => {
+      setClips(next);
       setLoading(false);
     });
-    const unsubComps = subscribeToCompetitions(setCompetitions);
     const unsubUsers = subscribeToAllUsers(setUsers);
     return () => {
-      unsubSubs();
-      unsubComps();
+      unsubClips();
       unsubUsers();
     };
   }, []);
 
   const payouts = useMemo(() => {
     const totals = new Map<string, number>();
-    for (const s of submissions.filter((s) => s.withdrawn)) {
-      const comp = competitions.find((c) => c.id === s.competitionId);
-      const amount = parseCurrency(comp?.payout ?? "0");
-      totals.set(s.submittedByUid, (totals.get(s.submittedByUid) ?? 0) + amount);
+    for (const clip of clips) {
+      const amount = clip.payoutAtSubmission ?? 0;
+      totals.set(clip.creatorId, (totals.get(clip.creatorId) ?? 0) + amount);
     }
     return [...totals.entries()]
       .map(([creatorId, amount]) => ({
@@ -43,7 +38,7 @@ export default function PayoutsPage() {
       }))
       .filter((p) => p.amount > 0)
       .sort((a, b) => b.amount - a.amount);
-  }, [submissions, competitions, users]);
+  }, [clips, users]);
 
   const pendingTotal = payouts.reduce((sum, p) => sum + p.amount, 0);
 
@@ -51,11 +46,11 @@ export default function PayoutsPage() {
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Payouts</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        What creators and streamers have earned from contest winnings.
+        What creators have earned from approved campaign clip submissions.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatCard icon={Wallet} label="Pending Payouts" value={`₦${pendingTotal.toFixed(2)}`} />
+        <StatCard icon={Wallet} label="Total Earned" value={`₦${pendingTotal.toFixed(2)}`} />
         <StatCard icon={DollarSign} label="Creators Owed" value={String(payouts.length)} />
       </div>
 
@@ -68,7 +63,7 @@ export default function PayoutsPage() {
           <ComingSoon
             icon={Wallet}
             title="No payouts owed"
-            text="Once creators withdraw contest winnings, they'll show up here."
+            text="Once a creator's clip is approved for a campaign with a payout set, it'll show up here."
           />
         </div>
       ) : (
