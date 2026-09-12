@@ -10,6 +10,7 @@ import {
   Menu,
   Plus,
   ShieldCheck,
+  User,
   X,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -208,19 +209,20 @@ export default function DashboardShell({
         </main>
       </div>
 
-      <MobileTabBar items={mobileNavItems} onOpenMenu={() => setMobileOpen(true)} />
+      <MobileTabBar items={mobileNavItems} profileHref={area === "admin" ? "/admin/account" : "/dashboard/account"} />
     </div>
   );
 }
 
 function MobileTabBar({
   items,
-  onOpenMenu,
+  profileHref,
 }: {
   items: NavItem[];
-  onOpenMenu: () => void;
+  profileHref: string;
 }) {
   const pathname = usePathname();
+  const profileActive = pathname.startsWith(profileHref);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-stretch border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-white/10 dark:bg-[#0a0a0a]/95 lg:hidden [@media(max-height:500px)]:hidden">
@@ -253,14 +255,15 @@ function MobileTabBar({
           </Link>
         );
       })}
-      <button
-        type="button"
-        onClick={onOpenMenu}
-        className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400"
+      <Link
+        href={profileHref}
+        className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
+          profileActive ? "text-amber-600 dark:text-yellow-400" : "text-slate-500 dark:text-slate-400"
+        }`}
       >
-        <Menu className="h-5 w-5" />
-        Menu
-      </button>
+        <User className="h-5 w-5" />
+        Profile
+      </Link>
     </nav>
   );
 }
