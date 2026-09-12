@@ -18,7 +18,10 @@ import ComingSoon from "@/components/dashboard/ComingSoon";
 import { subscribeToActiveCampaigns, type Campaign } from "@/lib/firebase-helpers";
 import { createClip, subscribeToClipsForUser, uploadClipVideo, type Clip, type ClipStatus } from "@/lib/clips";
 import { getPublicSettings } from "@/lib/platform-settings";
-import { extractYouTubeVideoId, fetchYouTubeStats, type YouTubeStats } from "@/lib/youtube";
+import { extractYouTubeVideoId, fetchYouTubeStats } from "@/lib/youtube";
+import { extractTikTokVideoId, fetchTikTokVideoStats, getValidTikTokAccessToken } from "@/lib/tiktok";
+
+type LinkStats = { title: string; thumbnailUrl: string; viewCount: number; likeCount: number | null };
 
 const categories = ["Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 
@@ -216,9 +219,10 @@ function SubmitClipModal({
   const [done, setDone] = useState(false);
   const [approvedInstantly, setApprovedInstantly] = useState(false);
   const [youtubeApiKey, setYoutubeApiKey] = useState("");
-  const [stats, setStats] = useState<YouTubeStats | null>(null);
+  const [stats, setStats] = useState<LinkStats | null>(null);
   const [fetchingStats, setFetchingStats] = useState(false);
   const [lastCheckedLink, setLastCheckedLink] = useState("");
+  const [tiktokHint, setTiktokHint] = useState("");
 
   useEffect(() => {
     getPublicSettings().then((s) => setYoutubeApiKey(s.youtubeApiKey));
@@ -228,19 +232,42 @@ function SubmitClipModal({
     const trimmed = link.trim();
     if (!trimmed || trimmed === lastCheckedLink) return;
     setLastCheckedLink(trimmed);
-    const videoId = youtubeApiKey ? extractYouTubeVideoId(trimmed) : null;
-    if (!videoId) {
-      setStats(null);
+    setTiktokHint("");
+
+    const youtubeId = youtubeApiKey ? extractYouTubeVideoId(trimmed) : null;
+    if (youtubeId) {
+      setFetchingStats(true);
+      try {
+        const result = await fetchYouTubeStats(youtubeId, youtubeApiKey);
+        setStats(result);
+        if (result && !title.trim()) setTitle(result.title);
+      } finally {
+        setFetchingStats(false);
+      }
       return;
     }
-    setFetchingStats(true);
-    try {
-      const result = await fetchYouTubeStats(videoId, youtubeApiKey);
-      setStats(result);
-      if (result && !title.trim()) setTitle(result.title);
-    } finally {
-      setFetchingStats(false);
+
+    const tiktokId = extractTikTokVideoId(trimmed);
+    if (tiktokId) {
+      setFetchingStats(true);
+      try {
+        const accessToken = await getValidTikTokAccessToken(userId);
+        if (!accessToken) {
+          setStats(null);
+          setTiktokHint("Connect your TikTok account from Profile to auto-fetch stats for this clip.");
+          return;
+        }
+        const result = await fetchTikTokVideoStats(accessToken, tiktokId);
+        setStats(result);
+        if (result && !title.trim()) setTitle(result.title);
+        if (!result) setTiktokHint("That video isn't on your connected TikTok account.");
+      } finally {
+        setFetchingStats(false);
+      }
+      return;
     }
+
+    setStats(null);
   };
 
   useEffect(() => {
@@ -414,10 +441,12 @@ function SubmitClipModal({
                           </div>
                         </div>
                       </div>
+                    ) : tiktokHint ? (
+                      <p className="mt-1.5 text-[11px] text-amber-600 dark:text-yellow-400">{tiktokHint}</p>
                     ) : (
                       youtubeApiKey && (
                         <p className="mt-1.5 text-[11px] text-slate-400">
-                          Paste a YouTube link to auto-fetch its view and like counts.
+                          Paste a YouTube or (connected) TikTok link to auto-fetch its view and like counts.
                         </p>
                       )
                     )}

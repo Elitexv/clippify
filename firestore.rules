@@ -42,6 +42,14 @@ service cloud.firestore {
       match /favorites/{clipId} {
         allow read, write: if isOwner(userId);
       }
+
+      // OAuth tokens for a creator's connected TikTok account (see src/lib/tiktok.ts).
+      // Written directly by the client after the server-side OAuth exchange, since
+      // there's no Firebase Admin access from the token-exchange API route — only the
+      // owner can ever read or write their own tokens.
+      match /tiktok/{docId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     // --- clips ---
