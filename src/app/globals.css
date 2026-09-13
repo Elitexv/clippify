@@ -169,3 +169,75 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Scoped prose styling for legal documents (Terms, Privacy, Refund Policy) —
+   no Tailwind typography plugin installed, so this covers the same ground by hand. */
+.legal-content h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+.legal-content h2:first-child {
+  margin-top: 0;
+}
+.legal-content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.legal-content p {
+  margin-top: 0.75rem;
+  line-height: 1.7;
+  color: #475569;
+}
+.dark .legal-content p {
+  color: #94a3b8;
+}
+.legal-content ul,
+.legal-content ol {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+  line-height: 1.7;
+  color: #475569;
+}
+.dark .legal-content ul,
+.dark .legal-content ol {
+  color: #94a3b8;
+}
+.legal-content ul {
+  list-style-type: disc;
+}
+.legal-content ol {
+  list-style-type: decimal;
+}
+.legal-content li {
+  margin-top: 0.375rem;
+}
+.legal-content li::marker {
+  color: #f59e0b;
+}
+.legal-content strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.legal-content a {
+  color: #d97706;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.dark .legal-content a {
+  color: #facc15;
+}
+.legal-content code {
+  border-radius: 0.25rem;
+  background: rgba(100, 116, 139, 0.12);
+  padding: 0.125rem 0.375rem;
+  font-size: 0.85em;
+}
+.dark .legal-content code {
+  background: rgba(255, 255, 255, 0.08);
+}

@@ -1,24 +1,44 @@
+import Link from "next/link";
 import { Globe } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const columns = [
   {
     title: "Marketplace",
-    links: ["Find Talent", "Hire Streamers", "Collections", "Popular Creators"],
+    links: [
+      { label: "Find Talent", href: "#" },
+      { label: "Hire Streamers", href: "#" },
+      { label: "Collections", href: "#" },
+      { label: "Popular Creators", href: "#" },
+    ],
   },
   {
     title: "For Creators",
-    links: ["Become a Clipper", "Creator Dashboard", "Resources", "Payouts"],
+    links: [
+      { label: "Become a Clipper", href: "#" },
+      { label: "Creator Dashboard", href: "#" },
+      { label: "Resources", href: "#" },
+      { label: "Payouts", href: "/refund-policy" },
+    ],
   },
   {
     title: "Company",
-    links: ["About Us", "Careers", "Blog", "Contact"],
+    links: [
+      { label: "About Us", href: "#" },
+      { label: "Careers", href: "#" },
+      { label: "Blog", href: "#" },
+      { label: "Contact", href: "mailto:support@clippii.com" },
+    ],
   },
   {
     title: "Legal",
-    links: ["Terms of Service", "Privacy Policy", "Cookie Policy", "Licenses"],
+    links: [
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Refund & Payout Policy", href: "/refund-policy" },
+    ],
   },
-];
+] as const;
 
 export default function Footer() {
   return (
@@ -51,13 +71,22 @@ export default function Footer() {
               <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{col.title}</h4>
               <ul className="mt-4 space-y-3">
                 {col.links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
-                      className="text-sm text-slate-500 transition-colors duration-200 hover:text-slate-900 dark:hover:text-white"
-                    >
-                      {link}
-                    </a>
+                  <li key={link.label}>
+                    {link.href.startsWith("/") ? (
+                      <Link
+                        href={link.href}
+                        className="text-sm text-slate-500 transition-colors duration-200 hover:text-slate-900 dark:hover:text-white"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.href}
+                        className="text-sm text-slate-500 transition-colors duration-200 hover:text-slate-900 dark:hover:text-white"
+                      >
+                        {link.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

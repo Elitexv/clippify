@@ -250,11 +250,21 @@ export default function SignupForm() {
           />
           <span>
             I agree to the{" "}
-            <Link href="#" className="text-amber-600 hover:underline dark:text-yellow-400">
+            <Link
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-600 hover:underline dark:text-yellow-400"
+            >
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link href="#" className="text-amber-600 hover:underline dark:text-yellow-400">
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-600 hover:underline dark:text-yellow-400"
+            >
               Privacy Policy
             </Link>
           </span>

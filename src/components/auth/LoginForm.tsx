@@ -152,11 +152,21 @@ export default function LoginForm() {
 
       <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-500">
         By logging in, you agree to our{" "}
-        <Link href="#" className="text-amber-600 hover:underline dark:text-yellow-400">
+        <Link
+          href="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber-600 hover:underline dark:text-yellow-400"
+        >
           Terms of Service
         </Link>{" "}
         and{" "}
-        <Link href="#" className="text-amber-600 hover:underline dark:text-yellow-400">
+        <Link
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber-600 hover:underline dark:text-yellow-400"
+        >
           Privacy Policy
         </Link>
         .
