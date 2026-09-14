@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DollarSign, Wallet } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
-import ComingSoon from "@/components/dashboard/ComingSoon";
+import EmptyState from "@/components/dashboard/EmptyState";
 import { subscribeToAllUsers, type AppUser } from "@/lib/firebase-helpers";
 import { subscribeToApprovedClips, type Clip } from "@/lib/clips";
 
@@ -60,7 +60,7 @@ export default function PayoutsPage() {
         </div>
       ) : payouts.length === 0 ? (
         <div className="mt-6">
-          <ComingSoon
+          <EmptyState
             icon={Wallet}
             title="No payouts owed"
             text="Once a creator's clip is approved for a campaign with a payout set, it'll show up here."

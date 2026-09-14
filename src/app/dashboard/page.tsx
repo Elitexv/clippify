@@ -16,7 +16,7 @@ import {
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import StatCard from "@/components/dashboard/StatCard";
-import ComingSoon from "@/components/dashboard/ComingSoon";
+import EmptyState from "@/components/dashboard/EmptyState";
 import { fetchFavoriteIds, subscribeToApprovedClips, subscribeToClipsForUser, type Clip } from "@/lib/clips";
 import { subscribeToCampaignsForUser, type Campaign } from "@/lib/firebase-helpers";
 
@@ -195,7 +195,7 @@ function DashboardHomeContent() {
 
       <SectionHeader title="Featured Clips" href="/dashboard/browse" />
       {clips.length === 0 ? (
-        <ComingSoon icon={Film} title="No clips yet" text="Approved clips will show up here." />
+        <EmptyState icon={Film} title="No clips yet" text="Approved clips will show up here." />
       ) : (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {clips.slice(0, 4).map((clip) => (
@@ -252,7 +252,7 @@ function DashboardHomeContent() {
         <>
           <SectionHeader title="My Campaigns" href="/dashboard/campaigns" />
           {campaigns.length === 0 ? (
-            <ComingSoon icon={Briefcase} title="No campaigns yet" text="Post a campaign to get started." />
+            <EmptyState icon={Briefcase} title="No campaigns yet" text="Post a campaign to get started." />
           ) : (
             <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white dark:border-white/10 dark:bg-[#111]">
               <table className="w-full text-left text-sm">

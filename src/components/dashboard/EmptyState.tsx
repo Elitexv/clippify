@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-export default function ComingSoon({
+export default function EmptyState({
   icon: Icon,
   title,
   text,
@@ -20,9 +20,6 @@ export default function ComingSoon({
       <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
         {text}
       </p>
-      <span className="mt-4 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500 dark:bg-white/5 dark:text-slate-400">
-        Coming soon
-      </span>
     </div>
   );
 }

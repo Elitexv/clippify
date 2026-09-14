@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, DollarSign, ShieldAlert, Wallet, XCircle } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
-import ComingSoon from "@/components/dashboard/ComingSoon";
+import EmptyState from "@/components/dashboard/EmptyState";
 import { subscribeToAllTransactions, type Transaction, type TransactionStatus } from "@/lib/transactions";
 
 const statusStyle: Record<TransactionStatus, string> = {
@@ -78,7 +78,7 @@ export default function AdminTransactionsPage() {
         </div>
       ) : visible.length === 0 ? (
         <div className="mt-6">
-          <ComingSoon
+          <EmptyState
             icon={ShieldAlert}
             title="No transactions yet"
             text="Payment attempts for campaigns and clip licenses will show up here."

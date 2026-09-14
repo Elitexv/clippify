@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Check, CheckCircle2, ClipboardList, ExternalLink, Loader2, Plus, X, XCircle } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
-import ComingSoon from "@/components/dashboard/ComingSoon";
+import EmptyState from "@/components/dashboard/EmptyState";
 import {
   subscribeToCampaignsForUser,
   updateCampaignPayout,
@@ -126,7 +126,7 @@ function MyCampaignsContent() {
         </div>
       ) : campaigns.length === 0 ? (
         <div className="mt-6">
-          <ComingSoon
+          <EmptyState
             icon={ClipboardList}
             title="No campaigns yet"
             text="Once you post a campaign, it'll show up here with its status and details."

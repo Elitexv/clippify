@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
-import ComingSoon from "@/components/dashboard/ComingSoon";
+import EmptyState from "@/components/dashboard/EmptyState";
 import { subscribeToActiveCampaigns, type Campaign } from "@/lib/firebase-helpers";
 import { createClip, subscribeToClipsForUser, uploadClipVideo, type Clip, type ClipStatus } from "@/lib/clips";
 import { getPublicSettings } from "@/lib/platform-settings";
@@ -99,7 +99,7 @@ function CreatorCampaignsContent() {
         </div>
       ) : campaigns.length === 0 ? (
         <div className="mt-6">
-          <ComingSoon
+          <EmptyState
             icon={Briefcase}
             title="No open campaigns yet"
             text="Brands post campaigns from Post a Campaign. Check back soon."

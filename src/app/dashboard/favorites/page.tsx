@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Heart, X } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
-import ComingSoon from "@/components/dashboard/ComingSoon";
+import EmptyState from "@/components/dashboard/EmptyState";
 import { removeFavorite, subscribeToFavorites, type FavoriteClip } from "@/lib/clips";
 
 export default function FavoritesPage() {
@@ -42,7 +42,7 @@ function FavoritesContent() {
         </div>
       ) : favorites.length === 0 ? (
         <div className="mt-6">
-          <ComingSoon
+          <EmptyState
             icon={Heart}
             title="No favorites yet"
             text="Tap the heart icon on any clip in Browse Clips to save it here."

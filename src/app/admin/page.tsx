@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Briefcase, ChevronRight, ShieldAlert, Users } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
-import ComingSoon from "@/components/dashboard/ComingSoon";
+import EmptyState from "@/components/dashboard/EmptyState";
 import { subscribeToAllUsers, subscribeToAllCampaigns, type AppUser, type Campaign } from "@/lib/firebase-helpers";
 import { subscribeToPendingClips, type Clip } from "@/lib/clips";
 
@@ -53,7 +53,7 @@ export default function AdminOverviewPage() {
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500 dark:border-white/10 dark:border-t-yellow-400" />
         </div>
       ) : recentSignups.length === 0 ? (
-        <ComingSoon icon={Users} title="No users yet" text="New signups will show up here." />
+        <EmptyState icon={Users} title="No users yet" text="New signups will show up here." />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white dark:border-white/10 dark:bg-[#111]">
           <table className="w-full text-left text-sm">
@@ -91,7 +91,7 @@ export default function AdminOverviewPage() {
 
       <SectionHeader title="Active Campaigns" href="/admin/campaigns" />
       {activeCampaigns.length === 0 ? (
-        <ComingSoon icon={Briefcase} title="No active campaigns" text="Brands post campaigns from Post a Campaign." />
+        <EmptyState icon={Briefcase} title="No active campaigns" text="Brands post campaigns from Post a Campaign." />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {activeCampaigns.slice(0, 6).map((c) => (
@@ -112,7 +112,7 @@ export default function AdminOverviewPage() {
 
       <SectionHeader title="Moderation Queue" href="/admin/moderation" />
       {pendingClips.length === 0 ? (
-        <ComingSoon icon={ShieldAlert} title="Nothing to review" text="Pending clip uploads will show up here." />
+        <EmptyState icon={ShieldAlert} title="Nothing to review" text="Pending clip uploads will show up here." />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {pendingClips.slice(0, 3).map((clip) => (
