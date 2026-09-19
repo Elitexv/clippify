@@ -132,7 +132,7 @@ function PostCampaignPageContent() {
         const result = await payWithPaystack({
           publicKey,
           email: user.email,
-          amountUsd: total,
+          amountNaira: total,
           reference,
         });
         if (!result) {

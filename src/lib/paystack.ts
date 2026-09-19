@@ -58,20 +58,19 @@ function loadPaystackScript(): Promise<void> {
 /**
  * Opens the Paystack popup for a one-off charge. Resolves with the transaction
  * reference on success, or `null` if the shopper closes the popup without paying.
- * `amountUsd` is converted to the smallest currency unit (Paystack's `amount` is in
- * kobo/cents) using a flat cents-style multiplier — Paystack test keys default to NGN,
- * so this is meant for exercising the payment flow end to end, not real FX conversion.
+ * `amountNaira` is converted to kobo (Paystack's `amount` is always in the currency's
+ * smallest unit — 1 Naira = 100 kobo) before being sent.
  */
 export async function payWithPaystack({
   publicKey,
   email,
-  amountUsd,
+  amountNaira,
   reference,
   currency = "NGN",
 }: {
   publicKey: string;
   email: string;
-  amountUsd: number;
+  amountNaira: number;
   reference: string;
   currency?: string;
 }): Promise<{ reference: string } | null> {
@@ -85,7 +84,7 @@ export async function payWithPaystack({
       const handler = window.PaystackPop!.setup({
         key: publicKey,
         email,
-        amount: Math.round(amountUsd * 100),
+        amount: Math.round(amountNaira * 100),
         currency,
         ref: reference,
         onClose: () => resolve(null),
