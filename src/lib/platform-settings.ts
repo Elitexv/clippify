@@ -192,8 +192,24 @@ export function isProviderConnected(providerId: ProviderId, config: ProviderConf
   return providerFieldSchemas[providerId].every((field) => (config.keys[field.key] ?? "").trim().length > 0);
 }
 
+// Providers that actually charge the customer and confirm the result before checkout
+// proceeds. An admin can configure keys for any provider (useful to have ready for
+// later), but only providers in this set are ever offered at checkout — every other
+// provider here has no real charge/verification step wired up, so "enabling" one
+// today would let a brand post a campaign for free with no payment and no record of
+// it (see src/app/dashboard/post-job/page.tsx). Add a provider here only once it has
+// a real integration like Paystack's (src/lib/paystack.ts).
+export const PROVIDERS_WITH_REAL_CHECKOUT: ProviderId[] = ["paystack"];
+
+export function hasRealCheckout(providerId: ProviderId): boolean {
+  return PROVIDERS_WITH_REAL_CHECKOUT.includes(providerId);
+}
+
 export function getLiveProviders(settings: PlatformSettings): ProviderId[] {
   return (Object.keys(settings.paymentProviders) as ProviderId[]).filter(
-    (id) => settings.paymentProviders[id].enabled && isProviderConnected(id, settings.paymentProviders[id])
+    (id) =>
+      hasRealCheckout(id) &&
+      settings.paymentProviders[id].enabled &&
+      isProviderConnected(id, settings.paymentProviders[id])
   );
 }

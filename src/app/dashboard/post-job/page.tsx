@@ -122,46 +122,52 @@ function PostCampaignPageContent() {
       // then stuck on "Processing payment..." while a post-payment step silently hangs.
       const flyerUrl = flyer ? await uploadCampaignFlyer(user.id, flyer) : "";
 
-      let paymentReference: string | undefined;
+      if (!method) throw new Error("Choose a payment method to continue.");
 
-      if (method === "paystack") {
-        const publicKey = settings.providerPublicKeys.paystack;
-        if (!publicKey) throw new Error("Paystack isn't fully configured yet. Ask an admin to check Manage Payments.");
-        // eslint-disable-next-line react-hooks/purity -- runs only inside this click handler, never during render
-        const reference = `clippifi-campaign-${user.id}-${Date.now()}`;
-        const result = await payWithPaystack({
-          publicKey,
-          email: user.email,
-          amountNaira: total,
-          reference,
-        });
-        if (!result) {
-          await recordTransaction({
-            type: "campaign",
-            status: "failed",
-            userId: user.id,
-            userName: user.name,
-            amount: total,
-            provider: method,
-            reference,
-            failureReason: "Payment window closed before completion",
-            relatedTitle: title.trim(),
-          }).catch((err) => console.error("Failed to record transaction:", err));
-          setPaying(false);
-          return;
-        }
-        paymentReference = result.reference;
+      // Only Paystack has a real charge/verification flow (src/lib/paystack.ts) —
+      // getLiveProviders() should never offer anything else, but this stays as a hard
+      // stop rather than falling through to createCampaign(): silently skipping
+      // payment here would post a campaign for free with no transaction record.
+      if (method !== "paystack") {
+        throw new Error(`${providerMeta[method].name} isn't wired up for checkout yet. Ask an admin to use Paystack instead.`);
+      }
+
+      const publicKey = settings.providerPublicKeys.paystack;
+      if (!publicKey) throw new Error("Paystack isn't fully configured yet. Ask an admin to check Manage Payments.");
+      // eslint-disable-next-line react-hooks/purity -- runs only inside this click handler, never during render
+      const reference = `clippifi-campaign-${user.id}-${Date.now()}`;
+      const result = await payWithPaystack({
+        publicKey,
+        email: user.email,
+        amountNaira: total,
+        reference,
+      });
+      if (!result) {
         await recordTransaction({
           type: "campaign",
-          status: "success",
+          status: "failed",
           userId: user.id,
           userName: user.name,
           amount: total,
           provider: method,
-          reference: paymentReference,
+          reference,
+          failureReason: "Payment window closed before completion",
           relatedTitle: title.trim(),
         }).catch((err) => console.error("Failed to record transaction:", err));
+        setPaying(false);
+        return;
       }
+      const paymentReference = result.reference;
+      await recordTransaction({
+        type: "campaign",
+        status: "success",
+        userId: user.id,
+        userName: user.name,
+        amount: total,
+        provider: method,
+        reference: paymentReference,
+        relatedTitle: title.trim(),
+      }).catch((err) => console.error("Failed to record transaction:", err));
 
       await createCampaign({
         brandId: user.id,

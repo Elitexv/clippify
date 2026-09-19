@@ -5,6 +5,7 @@ import { Banknote, Check, CreditCard, Eye, EyeOff, KeyRound, Landmark, ShieldAle
 import {
   defaultPlatformSettings,
   getPlatformSettings,
+  hasRealCheckout,
   isProviderConnected,
   providerFieldSchemas,
   providerMeta,
@@ -103,7 +104,8 @@ export default function ManagePaymentsPage() {
           const connected = isProviderConnected(id, config);
           const Icon = providerIcon[id];
 
-          const status = connected && config.enabled
+          const canCheckout = hasRealCheckout(id);
+          const status = connected && config.enabled && canCheckout
             ? { label: "Live", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400" }
             : connected
               ? { label: "Configured", cls: "bg-amber-100 text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400" }
@@ -127,6 +129,12 @@ export default function ManagePaymentsPage() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{meta.description}</p>
+                    {!canCheckout && (
+                      <p className="mt-0.5 text-xs text-amber-600 dark:text-yellow-400">
+                        Keys can be saved here, but checkout isn&apos;t wired up for this
+                        provider yet — it won&apos;t appear as a payment option for brands.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -181,8 +189,9 @@ export default function ManagePaymentsPage() {
 
       <div className="mt-8 flex items-center gap-2 text-xs text-slate-400">
         <KeyRound className="h-3.5 w-3.5" />
-        A provider only appears as a payment option at campaign checkout once it&apos;s both
-        connected (all keys filled) and enabled here.
+        A provider only appears as a payment option at campaign checkout once it&apos;s
+        connected (all keys filled), enabled here, <em>and</em> has real checkout processing
+        built — right now that&apos;s Paystack only.
       </div>
     </div>
   );
