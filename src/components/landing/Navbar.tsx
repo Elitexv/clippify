@@ -41,12 +41,13 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <button
-            aria-label="Search"
+          <Link
+            href={user ? "/dashboard/browse" : "/login"}
+            aria-label="Search clips"
             className="flex h-9 w-9 items-center justify-center text-slate-500 transition-transform duration-200 hover:scale-110 hover:text-amber-600 dark:text-slate-300 dark:hover:text-yellow-400"
           >
             <Search className="h-[18px] w-[18px]" />
-          </button>
+          </Link>
           <ThemeToggle />
           {user ? (
             <Link

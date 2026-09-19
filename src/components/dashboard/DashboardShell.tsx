@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
   ChevronDown,
   LogOut,
   Menu,
@@ -151,14 +150,6 @@ export default function DashboardShell({
             )}
 
             <ThemeToggle />
-
-            <button
-              aria-label="Notifications"
-              className="relative text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-500" />
-            </button>
 
             <div className="relative">
               <button
