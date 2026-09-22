@@ -19,7 +19,7 @@ import { subscribeToActiveCampaigns, type Campaign } from "@/lib/firebase-helper
 import { createClip, subscribeToClipsForUser, uploadClipVideo, type Clip, type ClipStatus } from "@/lib/clips";
 import { getPublicSettings } from "@/lib/platform-settings";
 import { extractYouTubeVideoId, fetchYouTubeStats } from "@/lib/youtube";
-import { extractTikTokVideoId, fetchTikTokVideoStats, getValidTikTokAccessToken } from "@/lib/tiktok";
+import { fetchTikTokVideoStats, getValidTikTokAccessToken, isTikTokLink, resolveTikTokVideoId } from "@/lib/tiktok";
 
 type LinkStats = { title: string; thumbnailUrl: string; viewCount: number; likeCount: number | null };
 
@@ -247,14 +247,19 @@ function SubmitClipModal({
       return;
     }
 
-    const tiktokId = extractTikTokVideoId(trimmed);
-    if (tiktokId) {
+    if (isTikTokLink(trimmed)) {
       setFetchingStats(true);
       try {
         const accessToken = await getValidTikTokAccessToken(userId);
         if (!accessToken) {
           setStats(null);
           setTiktokHint("Connect your TikTok account from Profile to auto-fetch stats for this clip.");
+          return;
+        }
+        const tiktokId = await resolveTikTokVideoId(trimmed);
+        if (!tiktokId) {
+          setStats(null);
+          setTiktokHint("Couldn't read that TikTok link. Try pasting the full video link from your profile.");
           return;
         }
         const result = await fetchTikTokVideoStats(accessToken, tiktokId);

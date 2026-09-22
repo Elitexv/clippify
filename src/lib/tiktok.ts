@@ -45,6 +45,52 @@ export function extractTikTokVideoId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// TikTok's "Share" button — the way most creators actually copy their own video
+// link — gives out a short redirect (vm.tiktok.com/…, vt.tiktok.com/…, or
+// tiktok.com/t/…) that doesn't contain the video ID itself; it only appears after
+// following the redirect. extractTikTokVideoId() alone can't handle these.
+//
+// Regex rather than `new URL()` on purpose, matching TIKTOK_URL_PATTERN's style:
+// a creator can paste a link without a scheme (e.g. "tiktok.com/@user/video/123",
+// which browsers/inputs still treat as a usable link) and `new URL()` would throw
+// on that, silently breaking matching.
+const TIKTOK_SHORT_LINK_PATTERN = /(?:^|\/\/)(?:vm|vt)\.tiktok\.com\/|tiktok\.com\/t\//;
+
+function isTikTokShortLink(url: string): boolean {
+  return TIKTOK_SHORT_LINK_PATTERN.test(url);
+}
+
+/** Any recognizable TikTok link (full video URL or short share link), used to decide when to show TikTok-specific hints in the submit form. */
+export function isTikTokLink(url: string): boolean {
+  return /(?:^|\.|\/\/)tiktok\.com\//.test(url);
+}
+
+/**
+ * Extracts a TikTok video ID from any link a creator might paste, including
+ * short share links — those require a server round-trip to follow the redirect
+ * (src/app/api/tiktok/resolve-link/route.ts), since browsers can't read a
+ * cross-origin redirect's final URL. Returns null for non-TikTok links, links
+ * that don't resolve, or on network failure.
+ */
+export async function resolveTikTokVideoId(url: string): Promise<string | null> {
+  const direct = extractTikTokVideoId(url);
+  if (direct) return direct;
+  if (!isTikTokShortLink(url)) return null;
+
+  try {
+    const res = await fetch("/api/tiktok/resolve-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.resolvedUrl === "string" ? extractTikTokVideoId(data.resolvedUrl) : null;
+  } catch {
+    return null;
+  }
+}
+
 export type TikTokVideoStats = {
   videoId: string;
   title: string;
