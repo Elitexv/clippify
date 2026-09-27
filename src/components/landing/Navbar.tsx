@@ -6,6 +6,7 @@ import { ChevronDown, Menu, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
+import { btnPrimary } from "@/lib/button-styles";
 
 const exploreLinks = ["Find Talent", "Hire Streamers", "Collections", "Popular Creators"];
 const resourceLinks = ["Creator Dashboard", "Blog", "Help Center", "API Docs"];
@@ -23,7 +24,7 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-2 shrink-0">
           <Logo className="h-8 w-8 transition-transform duration-200 group-hover:rotate-6" />
-          <span className="text-lg font-semibold text-slate-900 dark:text-white">Clippifi</span>
+          <span className="font-display text-lg font-bold tracking-tight text-slate-900 dark:text-white">Clippifi</span>
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex">
@@ -52,7 +53,7 @@ export default function Navbar() {
           {user ? (
             <Link
               href={dashboardHref}
-              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-4 py-2 text-sm font-semibold text-black shadow-sm shadow-yellow-500/30 transition-transform duration-200 hover:scale-105 hover:opacity-90 active:scale-95"
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm ${btnPrimary}`}
             >
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/10 text-[10px] font-bold">
                 {user.initials}
@@ -66,7 +67,7 @@ export default function Navbar() {
               </Link>
               <Link
                 href="/signup"
-                className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-4 py-2 text-sm font-semibold text-black shadow-sm shadow-yellow-500/30 transition-transform duration-200 hover:scale-105 hover:opacity-90 active:scale-95"
+                className={`rounded-lg px-4 py-2 text-sm ${btnPrimary}`}
               >
                 Sign up
               </Link>
@@ -119,7 +120,7 @@ export default function Navbar() {
               {user ? (
                 <Link
                   href={dashboardHref}
-                  className="flex-1 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-4 py-2 text-center text-sm font-semibold text-black"
+                  className={`flex-1 rounded-lg px-4 py-2 text-center text-sm ${btnPrimary}`}
                 >
                   Go to Dashboard
                 </Link>
@@ -130,7 +131,7 @@ export default function Navbar() {
                   </Link>
                   <Link
                     href="/signup"
-                    className="flex-1 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-4 py-2 text-center text-sm font-semibold text-black"
+                    className={`flex-1 rounded-lg px-4 py-2 text-center text-sm ${btnPrimary}`}
                   >
                     Sign up
                   </Link>

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Heart, Play } from "lucide-react";
+import { btnPrimary, btnSecondary } from "@/lib/button-styles";
 
 const brands = ["YouTube", "TikTok", "Instagram", "Shopify", "Twitch", "Canva"];
 
@@ -7,26 +8,15 @@ export default function Hero() {
   return (
     <section className="relative overflow-hidden bg-white dark:bg-[#0a0a0a]">
       <div
-        className="animate-drift pointer-events-none absolute -top-40 right-0 h-[560px] w-[560px] rounded-full bg-yellow-400/20 blur-[120px]"
-        aria-hidden
-      />
-      <div
-        className="animate-drift pointer-events-none absolute bottom-0 left-1/3 h-[360px] w-[360px] rounded-full bg-amber-500/15 blur-[100px]"
-        style={{ animationDelay: "-6s", animationDirection: "reverse" }}
+        className="pointer-events-none absolute inset-0 [background-image:radial-gradient(circle,rgba(0,0,0,0.08)_1.5px,transparent_1.5px)] [background-size:22px_22px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,black_40%,transparent_100%)] dark:[background-image:radial-gradient(circle,rgba(255,255,255,0.12)_1.5px,transparent_1.5px)]"
         aria-hidden
       />
 
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8 lg:pb-24 lg:pt-20">
         <div className="max-w-xl">
-          <h1 className="animate-fade-in-up text-4xl font-bold leading-tight text-slate-900 dark:text-white sm:text-5xl">
+          <h1 className="animate-fade-in-up font-display text-4xl font-bold leading-tight tracking-tight text-slate-900 dark:text-white sm:text-5xl">
             The marketplace for{" "}
-            <span className="bg-gradient-to-r from-yellow-500 to-amber-600 bg-clip-text text-transparent dark:from-yellow-300 dark:to-amber-400">
-              streamers
-            </span>{" "}
-            and{" "}
-            <span className="bg-gradient-to-r from-yellow-500 to-amber-600 bg-clip-text text-transparent dark:from-yellow-300 dark:to-amber-400">
-              clip editors
-            </span>
+            <Highlight>streamers</Highlight> and <Highlight>clip editors</Highlight>
           </h1>
           <p
             className="animate-fade-in-up mt-5 text-base text-slate-500 dark:text-slate-400 sm:text-lg"
@@ -39,19 +29,13 @@ export default function Hero() {
             className="animate-fade-in-up mt-8 flex flex-col gap-3 sm:flex-row"
             style={{ animationDelay: "240ms" }}
           >
-            <a
-              href="#clips"
-              className="group rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-6 py-3 text-center text-sm font-semibold text-black shadow-lg shadow-yellow-500/30 transition-transform duration-200 hover:scale-[1.03] hover:opacity-90 active:scale-95"
-            >
+            <a href="#clips" className={`group rounded-lg px-6 py-3 text-center text-sm ${btnPrimary}`}>
               Explore Clips{" "}
               <span className="inline-block transition-transform duration-200 group-hover:translate-x-1">
                 →
               </span>
             </a>
-            <a
-              href="#creators"
-              className="rounded-lg border border-slate-200 px-6 py-3 text-center text-sm font-medium text-slate-900 transition-transform duration-200 hover:scale-[1.03] hover:bg-slate-100 active:scale-95 dark:border-white/15 dark:text-white dark:hover:bg-white/5"
-            >
+            <a href="#creators" className={`rounded-lg px-6 py-3 text-center text-sm ${btnSecondary}`}>
               Campaigns
             </a>
           </div>
@@ -203,6 +187,14 @@ function ClipCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function Highlight({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="relative inline-block -rotate-1 rounded-md border-2 border-black bg-yellow-400 px-2 py-0.5 text-slate-900 shadow-[3px_3px_0_0_#000] dark:border-yellow-200 dark:text-slate-900 dark:shadow-[3px_3px_0_0_#fde68a]">
+      {children}
+    </span>
   );
 }
 
