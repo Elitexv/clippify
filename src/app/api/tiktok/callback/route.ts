@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Web-only route — see src/app/api/tiktok/authorize/route.ts.
 const STATE_COOKIE = "tiktok_oauth_state";
-// Where to send the browser back to once the connection is stored — the only page
-// that offers "Connect TikTok" today (see ProfileContent.tsx).
-const RETURN_PATH = "/dashboard/account";
+// Where to send the browser back to once the connection is stored — the creator
+// settings page, where every social connection (TikTok included) lives now.
+const RETURN_PATH = "/dashboard/creator-settings";
 
 function redirectWithError(origin: string, message: string) {
   const url = new URL(RETURN_PATH, origin);

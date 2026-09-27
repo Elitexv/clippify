@@ -50,6 +50,20 @@ service cloud.firestore {
       match /tiktok/{docId} {
         allow read, write: if isOwner(userId);
       }
+
+      // OAuth tokens for every other connected social account (Instagram, Reddit,
+      // Threads, X, Bluesky — see src/lib/socials.ts), one doc per platform. Same
+      // owner-only trust model as /tiktok above.
+      match /socials/{platform} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Payout details a creator enters themselves (bank + wallet address) — see
+      // src/lib/creator-payout.ts. Financial info, so kept just as tightly scoped as
+      // the OAuth token docs: only the owner (or an admin, for actually paying out).
+      match /payout/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
 
     // --- clips ---
