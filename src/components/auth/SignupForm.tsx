@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, AtSign, Briefcase, Clapperboard, Loader2, Mail } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
+import { btnPrimary } from "@/lib/button-styles";
 import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
 
@@ -88,7 +89,7 @@ export default function SignupForm() {
   if (step === "role" || !role) {
     return (
       <div className="animate-fade-in-up">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
           How will you use Clippifi?
         </h1>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
@@ -143,7 +144,7 @@ export default function SignupForm() {
         Back
       </button>
 
-      <h1 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
+      <h1 className="font-display mt-3 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
         Create your {roleMeta.label.toLowerCase()} account
       </h1>
       <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
@@ -273,7 +274,7 @@ export default function SignupForm() {
         <button
           type="submit"
           disabled={!agreed || submitting}
-          className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-lg shadow-yellow-500/30 transition-transform duration-200 hover:scale-[1.02] hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+          className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm ${btnPrimary}`}
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           Create account

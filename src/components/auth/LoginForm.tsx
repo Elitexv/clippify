@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Mail, X } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { AUTH_NO_SUCH_ACCOUNT_MESSAGE } from "@/lib/firebase-helpers";
+import { btnPrimary } from "@/lib/button-styles";
 import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
 
@@ -62,7 +63,7 @@ export default function LoginForm() {
 
   return (
     <div className="animate-fade-in-up">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
+      <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
         Log in
       </h1>
       <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
@@ -143,7 +144,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={isLoading || isSubmitting}
-          className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-lg shadow-yellow-500/30 transition-transform duration-200 hover:scale-[1.02] hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+          className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm ${btnPrimary}`}
         >
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {isSubmitting ? "Logging in…" : "Log in"}
@@ -238,7 +239,7 @@ function ForgotPasswordModal({
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black transition-transform duration-200 hover:scale-[1.02]"
+              className={`mt-5 w-full rounded-lg py-2.5 text-sm ${btnPrimary}`}
             >
               Done
             </button>
@@ -265,7 +266,7 @@ function ForgotPasswordModal({
             <button
               type="submit"
               disabled={status === "sending"}
-              className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black transition-transform duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+              className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm ${btnPrimary}`}
             >
               {status === "sending" && <Loader2 className="h-4 w-4 animate-spin" />}
               Send reset link

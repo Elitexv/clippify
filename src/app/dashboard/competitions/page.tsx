@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
+import { btnPrimary } from "@/lib/button-styles";
 import { useAuth } from "@/lib/auth/auth-context";
 import EmptyState from "@/components/dashboard/EmptyState";
 import { subscribeToActiveCampaigns, type Campaign } from "@/lib/firebase-helpers";
@@ -87,7 +88,7 @@ function CreatorCampaignsContent() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Campaigns</h1>
+      <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Campaigns</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Browse open clipping campaigns posted by brands and submit a clip to participate — once
         approved, it also lists on Browse Clips.
@@ -171,7 +172,7 @@ function CreatorCampaignsContent() {
                   ) : (
                     <button
                       onClick={() => setActiveCampaign(campaign)}
-                      className="mt-4 w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                      className={`mt-4 w-full rounded-lg py-2.5 text-sm ${btnPrimary}`}
                     >
                       Submit a Clip
                     </button>
@@ -516,7 +517,7 @@ function SubmitClipModal({
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm ${btnPrimary}`}
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Submit Entry

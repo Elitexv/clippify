@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
+import { btnPrimary, btnSecondary } from "@/lib/button-styles";
 import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
 import { payWithPaystack } from "@/lib/paystack";
 import { recordTransaction } from "@/lib/transactions";
@@ -212,7 +213,7 @@ function PostCampaignPageContent() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Post a Campaign</h1>
+      <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Post a Campaign</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Drop a link to your channel or page so streamers know exactly where to go and start
         clipping.
@@ -322,14 +323,14 @@ function PostCampaignPageContent() {
           <div className="flex gap-2">
             <button
               onClick={() => setStep("form")}
-              className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+              className={`rounded-lg px-4 py-2.5 text-sm ${btnSecondary}`}
             >
               Back
             </button>
             <button
               onClick={handlePay}
               disabled={!method || paying}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm ${btnPrimary}`}
             >
               {paying ? (
                 <>
@@ -447,10 +448,7 @@ function PostCampaignPageContent() {
             <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>
           )}
 
-          <button
-            type="submit"
-            className="mt-1 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
-          >
+          <button type="submit" className={`mt-1 rounded-lg py-2.5 text-sm ${btnPrimary}`}>
             Continue to payment
           </button>
         </form>

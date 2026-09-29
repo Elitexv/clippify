@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Briefcase, Users } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
+import { btnPrimary } from "@/lib/button-styles";
 
 export default function HireStreamersPage() {
   return (
@@ -23,7 +24,7 @@ export default function HireStreamersPage() {
           </p>
           <Link
             href="/dashboard/post-job"
-            className="mt-5 flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-4 py-2 text-sm font-semibold text-black shadow-sm shadow-yellow-500/30 transition-transform duration-200 hover:scale-105"
+            className={`mt-5 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm ${btnPrimary}`}
           >
             <Briefcase className="h-4 w-4" />
             Post a Campaign

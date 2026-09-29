@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/lib/auth/auth-context";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
+import { btnPrimary } from "@/lib/button-styles";
 import {
   accountCreateItems,
   accountMobileNavItems,
@@ -74,7 +75,7 @@ export default function DashboardShell({
         <div className="flex h-16 items-center justify-between border-b border-slate-100 px-5 dark:border-white/10">
           <Link href="/" className="flex items-center gap-2">
             <Logo className="h-8 w-8" />
-            <span className="text-lg font-semibold text-slate-900 dark:text-white">
+            <span className="font-display text-lg font-bold tracking-tight text-slate-900 dark:text-white">
               Clippifi
             </span>
           </Link>
@@ -142,7 +143,7 @@ export default function DashboardShell({
             {area === "account" && createItems.length > 0 && (
               <Link
                 href={createItems[0].href}
-                className="hidden items-center gap-1.5 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-3 py-1.5 text-xs font-semibold text-black shadow-sm shadow-yellow-500/30 transition-transform duration-200 hover:scale-105 sm:flex"
+                className={`hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:flex ${btnPrimary}`}
               >
                 <Plus className="h-3.5 w-3.5" />
                 Create

@@ -6,6 +6,7 @@ import { Check, CheckCircle2, ClipboardList, ExternalLink, Loader2, Plus, X, XCi
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import EmptyState from "@/components/dashboard/EmptyState";
+import { btnPrimary } from "@/lib/button-styles";
 import {
   subscribeToCampaignsForUser,
   updateCampaignPayout,
@@ -106,14 +107,14 @@ function MyCampaignsContent() {
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Campaigns</h1>
+          <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">My Campaigns</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Manage your campaigns and approve or reject the clips streamers submit to each one.
           </p>
         </div>
         <Link
           href="/dashboard/post-job"
-          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-4 py-2 text-sm font-semibold text-black shadow-sm shadow-yellow-500/30 transition-transform duration-200 hover:scale-105"
+          className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm ${btnPrimary}`}
         >
           <Plus className="h-4 w-4" />
           Post a Campaign

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Banknote, Check, CreditCard, Eye, EyeOff, KeyRound, Landmark, ShieldAlert, Zap } from "lucide-react";
+import { btnPrimary } from "@/lib/button-styles";
 import {
   defaultPlatformSettings,
   getPlatformSettings,
@@ -82,7 +83,7 @@ export default function ManagePaymentsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Manage Payments</h1>
+      <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Manage Payments</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Connect payment providers with their API keys so brands and creators can pay for
         campaigns on the platform.
@@ -174,7 +175,7 @@ export default function ManagePaymentsPage() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+            className={`rounded-lg px-5 py-2.5 text-sm ${btnPrimary}`}
           >
             {saving ? "Saving…" : "Save changes"}
           </button>

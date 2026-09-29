@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, CreditCard, KeyRound, Settings } from "lucide-react";
+import { btnPrimary } from "@/lib/button-styles";
 import {
   defaultPlatformSettings,
   getPlatformSettings,
@@ -53,7 +54,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
+      <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Platform configuration, fees, and moderation rules.
       </p>
@@ -213,7 +214,7 @@ export default function AdminSettingsPage() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black shadow-md shadow-yellow-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+            className={`rounded-lg px-5 py-2.5 text-sm ${btnPrimary}`}
           >
             {saving ? "Saving…" : "Save changes"}
           </button>
