@@ -352,7 +352,9 @@ export async function uploadCampaignFlyer(brandId: string, file: File): Promise<
   return getDownloadURL(storageRef);
 }
 
-export type CampaignStatus = "draft" | "active" | "completed" | "cancelled";
+// "awaiting_payment" is written only by the server at checkout creation and flipped to
+// "active" by the Bachs webhook — it's never a value a user picks.
+export type CampaignStatus = "draft" | "awaiting_payment" | "active" | "completed" | "cancelled";
 
 export type Campaign = {
   id: string;

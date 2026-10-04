@@ -150,9 +150,7 @@ export default function TermsPage() {
 
       <h2>7. Payments</h2>
       <p>
-        Campaign payments are processed by third-party payment providers (currently Paystack, with
-        Flutterwave, Stripe, and manual bank transfer available depending on what an admin has
-        configured). Clippifi never sees or stores your full card number — that&apos;s handled
+        Campaign payments are processed by a third-party payment gateway, Bachs. Clippifi never sees or stores your full card number — that&apos;s handled
         entirely by the payment provider. We do keep a record of each payment attempt (amount,
         provider, a reference ID, and whether it succeeded or failed) for accounting and support
         purposes.

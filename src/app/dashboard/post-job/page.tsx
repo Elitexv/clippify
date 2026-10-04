@@ -1,57 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Banknote,
-  CheckCircle2,
-  CreditCard,
-  ImagePlus,
-  Landmark,
-  Link2,
-  Loader2,
-  X,
-  Zap,
-} from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { ImagePlus, Link2, Loader2, X } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { btnPrimary, btnSecondary } from "@/lib/button-styles";
-import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
-import { payWithPaystack } from "@/lib/paystack";
-import { recordTransaction } from "@/lib/transactions";
-import {
-  defaultPublicSettings as defaultSettings,
-  getPublicSettings,
-  parseCurrency,
-  providerMeta,
-  type PublicPlatformSettings,
-  type ProviderId,
-} from "@/lib/platform-settings";
+import { uploadCampaignFlyer } from "@/lib/firebase-helpers";
+import { auth } from "@/lib/firebase";
+import { defaultPublicSettings as defaultSettings, getPublicSettings, parseCurrency, type PublicPlatformSettings } from "@/lib/platform-settings";
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
-const providerIcon: Record<ProviderId, typeof CreditCard> = {
-  stripe: CreditCard,
-  flutterwave: Zap,
-  paystack: Banknote,
-  bank: Landmark,
-};
-
-type Step = "form" | "payment" | "success";
+type Step = "form" | "payment";
 
 export default function PostCampaignPage() {
   return (
     <RequireAuth area="brand">
-      <PostCampaignPageContent />
+      <Suspense fallback={null}>
+        <PostCampaignPageContent />
+      </Suspense>
     </RequireAuth>
   );
 }
 
 function PostCampaignPageContent() {
   const { user } = useAuth();
-  const router = useRouter();
+  const searchParams = useSearchParams();
   const [title, setTitle] = useState("");
   const [channelLink, setChannelLink] = useState("");
   const [brief, setBrief] = useState("");
@@ -60,15 +37,13 @@ function PostCampaignPageContent() {
   const [flyer, setFlyer] = useState<File | null>(null);
   const [flyerPreview, setFlyerPreview] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
-
   const [step, setStep] = useState<Step>("form");
 
   const [settings, setSettings] = useState<PublicPlatformSettings>(defaultSettings);
   const [settingsLoading, setSettingsLoading] = useState(true);
-  const enabledMethods = settings.liveProviders;
-  const [selectedMethod, setSelectedMethod] = useState<ProviderId | null>(null);
-  const method = selectedMethod ?? enabledMethods[0] ?? null;
   const [paying, setPaying] = useState(false);
+
+  const cancelled = searchParams.get("cancelled") === "1";
 
   useEffect(() => {
     getPublicSettings().then((s) => {
@@ -109,98 +84,43 @@ function PostCampaignPageContent() {
     setStep("payment");
   };
 
+  // The server recomputes the total from the platform's fee settings — the figure
+  // shown here is only a preview. The campaign stays hidden until Bachs' signed
+  // webhook confirms payment (see src/app/api/bachs/webhook/route.ts).
   const handlePay = async () => {
-    if (!user) {
+    if (!user || !auth.currentUser) {
       setFormError("You must be signed in to post a campaign.");
       return;
     }
-
     setPaying(true);
     setFormError("");
     try {
-      // Upload the flyer *before* charging the customer — if this fails (e.g. Storage
-      // misconfigured), they see the error immediately instead of being charged and
-      // then stuck on "Processing payment..." while a post-payment step silently hangs.
       const flyerUrl = flyer ? await uploadCampaignFlyer(user.id, flyer) : "";
-
-      if (!method) throw new Error("Choose a payment method to continue.");
-
-      // Only Paystack has a real charge/verification flow (src/lib/paystack.ts) —
-      // getLiveProviders() should never offer anything else, but this stays as a hard
-      // stop rather than falling through to createCampaign(): silently skipping
-      // payment here would post a campaign for free with no transaction record.
-      if (method !== "paystack") {
-        throw new Error(`${providerMeta[method].name} isn't wired up for checkout yet. Ask an admin to use Paystack instead.`);
-      }
-
-      const publicKey = settings.providerPublicKeys.paystack;
-      if (!publicKey) throw new Error("Paystack isn't fully configured yet. Ask an admin to check Manage Payments.");
-      // eslint-disable-next-line react-hooks/purity -- runs only inside this click handler, never during render
-      const reference = `clippifi-campaign-${user.id}-${Date.now()}`;
-      const result = await payWithPaystack({
-        publicKey,
-        email: user.email,
-        amountNaira: total,
-        reference,
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch("/api/bachs/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          title,
+          channelLink,
+          brief,
+          budget: budgetAmount,
+          deadline,
+          flyerUrl,
+        }),
       });
-      if (!result) {
-        await recordTransaction({
-          type: "campaign",
-          status: "failed",
-          userId: user.id,
-          userName: user.name,
-          amount: total,
-          provider: method,
-          reference,
-          failureReason: "Payment window closed before completion",
-          relatedTitle: title.trim(),
-        }).catch((err) => console.error("Failed to record transaction:", err));
-        setPaying(false);
-        return;
+      const data = await res.json();
+      if (!res.ok || !data.checkoutUrl) {
+        throw new Error(data.error || "Couldn't start checkout. Try again.");
       }
-      const paymentReference = result.reference;
-      await recordTransaction({
-        type: "campaign",
-        status: "success",
-        userId: user.id,
-        userName: user.name,
-        amount: total,
-        provider: method,
-        reference: paymentReference,
-        relatedTitle: title.trim(),
-      }).catch((err) => console.error("Failed to record transaction:", err));
-
-      await createCampaign({
-        brandId: user.id,
-        brandName: user.name,
-        title: title.trim(),
-        channelLink: channelLink.trim(),
-        brief,
-        budget: budgetAmount,
-        deadline,
-        flyerUrl,
-        status: "active",
-        paymentProvider: method ?? undefined,
-        paymentReference,
-      });
-      setPaying(false);
-      setStep("success");
-      setTimeout(() => router.push("/dashboard/campaigns"), 1800);
+      window.location.assign(data.checkoutUrl);
     } catch (error) {
       setPaying(false);
-      setFormError(error instanceof Error ? error.message : "Could not save the campaign. Please try again.");
+      setFormError(error instanceof Error ? error.message : "Could not start checkout. Please try again.");
     }
-  };
-
-  const postAnother = () => {
-    setTitle("");
-    setChannelLink("");
-    setBrief("");
-    setBudget("");
-    setDeadline("");
-    handleFlyerChange(null);
-    setFormError("");
-    setStep("form");
   };
 
   if (settingsLoading) {
@@ -219,38 +139,13 @@ function PostCampaignPageContent() {
         clipping.
       </p>
 
-      {step === "success" ? (
-        <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 px-6 py-14 text-center dark:border-emerald-400/20 dark:bg-emerald-400/5">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400">
-            <CheckCircle2 className="h-6 w-6" />
-          </span>
-          <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
-            Payment successful
-          </h2>
-          <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-            Payment of ₦{total.toFixed(2)} received. &ldquo;{title}&rdquo; is live — streamers can
-            now follow your link and start submitting clips.
-          </p>
-          <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Taking you to My Campaigns…
-          </p>
-          <div className="mt-5 flex gap-2">
-            <button
-              onClick={() => router.push("/dashboard/campaigns")}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 dark:bg-yellow-400 dark:text-black"
-            >
-              View My Campaigns
-            </button>
-            <button
-              onClick={postAnother}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-            >
-              Post another
-            </button>
-          </div>
-        </div>
-      ) : step === "payment" ? (
+      {cancelled && (
+        <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400">
+          Checkout was cancelled. Your campaign wasn&apos;t posted.
+        </p>
+      )}
+
+      {step === "payment" ? (
         <div className="mt-6 flex flex-col gap-5 rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]">
           <div>
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -264,78 +159,37 @@ function PostCampaignPageContent() {
           <div className="rounded-xl bg-slate-50 p-4 text-sm dark:bg-white/5">
             <div className="flex items-center justify-between">
               <span className="text-slate-500 dark:text-slate-400">Campaign budget</span>
-              <span className="font-medium text-slate-900 dark:text-white">
-                ₦{budgetAmount.toFixed(2)}
-              </span>
+              <span className="font-medium text-slate-900 dark:text-white">₦{budgetAmount.toFixed(2)}</span>
             </div>
             <div className="mt-1.5 flex items-center justify-between">
-              <span className="text-slate-500 dark:text-slate-400">
-                Processing fee ({settings.campaignProcessingFee}%)
-              </span>
+              <span className="text-slate-500 dark:text-slate-400">Processing fee ({settings.campaignProcessingFee}%)</span>
               <span className="font-medium text-slate-900 dark:text-white">₦{fee.toFixed(2)}</span>
             </div>
             <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-white/10">
               <span className="font-semibold text-slate-900 dark:text-white">Total</span>
-              <span className="font-bold text-amber-600 dark:text-yellow-400">
-                ₦{total.toFixed(2)}
-              </span>
+              <span className="font-bold text-amber-600 dark:text-yellow-400">₦{total.toFixed(2)}</span>
             </div>
           </div>
 
-          {enabledMethods.length === 0 ? (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">
-              No payment providers are connected yet. Ask an admin to add API keys in Manage
-              Payments.
-            </p>
-          ) : (
-            <div>
-              <p className={labelClass}>Payment method</p>
-              <div className="mt-2 flex flex-col gap-2">
-                {enabledMethods.map((m) => {
-                  const Icon = providerIcon[m];
-                  return (
-                    <label
-                      key={m}
-                      className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
-                        method === m
-                          ? "border-yellow-400 bg-yellow-50 dark:border-yellow-400/40 dark:bg-yellow-400/5"
-                          : "border-slate-200 dark:border-white/10"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="payment-method"
-                        checked={method === m}
-                        onChange={() => setSelectedMethod(m)}
-                        className="h-4 w-4 accent-amber-500"
-                      />
-                      <Icon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      <span className="text-slate-700 dark:text-slate-300">
-                        {providerMeta[m].name}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {formError && <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>}
 
           <div className="flex gap-2">
             <button
               onClick={() => setStep("form")}
+              disabled={paying}
               className={`rounded-lg px-4 py-2.5 text-sm ${btnSecondary}`}
             >
               Back
             </button>
             <button
               onClick={handlePay}
-              disabled={!method || paying}
+              disabled={paying}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm ${btnPrimary}`}
             >
               {paying ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing payment…
+                  Opening checkout…
                 </>
               ) : (
                 `Pay ₦${total.toFixed(2)} & post campaign`
@@ -376,9 +230,7 @@ function PostCampaignPageContent() {
             ) : (
               <label className="mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center transition-colors hover:border-yellow-400 dark:border-white/15 dark:bg-white/5">
                 <ImagePlus className="h-6 w-6 text-slate-400" />
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                  Click to upload a flyer image
-                </span>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Click to upload a flyer image</span>
                 <span className="text-xs text-slate-400">PNG or JPG, used to promote your campaign</span>
                 <input
                   type="file"
@@ -403,8 +255,7 @@ function PostCampaignPageContent() {
               />
             </div>
             <p className="mt-1.5 text-xs text-slate-400">
-              Your Twitch, YouTube, Kick, or TikTok page — this is where streamers will go to
-              source footage and clip.
+              Your Twitch, YouTube, Kick, or TikTok page — this is where streamers will go to source footage and clip.
             </p>
           </div>
 
@@ -429,8 +280,7 @@ function PostCampaignPageContent() {
                 className={inputClass}
               />
               <p className="mt-1.5 text-xs text-slate-400">
-                ₦{settings.minCampaignBudget} minimum · +{settings.campaignProcessingFee}%
-                processing fee at checkout.
+                ₦{settings.minCampaignBudget} minimum · +{settings.campaignProcessingFee}% processing fee at checkout.
               </p>
             </div>
             <div>
@@ -444,9 +294,7 @@ function PostCampaignPageContent() {
             </div>
           </div>
 
-          {formError && (
-            <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>
-          )}
+          {formError && <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>}
 
           <button type="submit" className={`mt-1 rounded-lg py-2.5 text-sm ${btnPrimary}`}>
             Continue to payment
