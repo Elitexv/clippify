@@ -112,9 +112,15 @@ function PostCampaignPageContent() {
           flyerUrl,
         }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: { checkoutUrl?: string; error?: string } = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(`Checkout failed (HTTP ${res.status}). Try again.`);
+      }
       if (!res.ok || !data.checkoutUrl) {
-        throw new Error(data.error || "Couldn't start checkout. Try again.");
+        throw new Error(data.error || `Checkout failed (HTTP ${res.status}). Try again.`);
       }
       window.location.assign(data.checkoutUrl);
     } catch (error) {

@@ -8,6 +8,16 @@ import { createBachsCheckout } from "@/app/api/_lib/bachs";
 // rules only expose "active") and opens a Bachs checkout for the server-computed total.
 // The campaign goes live only when the signed webhook confirms payment.
 export async function POST(request: NextRequest) {
+  try {
+    return await handleCheckout(request);
+  } catch (error) {
+    console.error("Bachs checkout failed:", error);
+    const message = error instanceof Error ? error.message : "Couldn't start checkout. Try again.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+async function handleCheckout(request: NextRequest) {
   const token = request.headers.get("authorization")?.replace(/^Bearer /, "");
   if (!token) return NextResponse.json({ error: "Sign in to post a campaign." }, { status: 401 });
 
