@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 // Instagram's long-lived tokens don't use a separate refresh_token grant like the
 // other platforms — you refresh the access token itself (must happen before it
 // expires), and get back a new 60-day token to store in its place.

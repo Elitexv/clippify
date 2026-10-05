@@ -11,7 +11,6 @@ import {
   subscribeToCreatorPayoutDetails,
   type CreatorPayoutDetails,
 } from "@/lib/creator-payout";
-import { disconnectTikTok, saveTikTokConnection, subscribeToTikTokConnection, type TikTokConnection } from "@/lib/tiktok";
 import {
   disconnectSocial,
   saveManualSocialHandle,
@@ -26,8 +25,11 @@ const inputClass =
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
 const CONNECTABLE_PLATFORMS: SocialPlatform[] = ["instagram", "reddit", "threads", "x"];
+// No OAuth flow for these: a creator just enters their handle or profile link.
+const MANUAL_ONLY_PLATFORMS: SocialPlatform[] = ["tiktok", "bluesky"];
 
 const socialMeta: Record<SocialPlatform, { name: string; monogram: string; badgeClass: string }> = {
+  tiktok: { name: "TikTok", monogram: "Tt", badgeClass: "bg-black text-white" },
   instagram: { name: "Instagram", monogram: "IG", badgeClass: "bg-gradient-to-br from-fuchsia-500 via-pink-500 to-orange-400 text-white" },
   reddit: { name: "Reddit", monogram: "r/", badgeClass: "bg-orange-600 text-white" },
   threads: { name: "Threads", monogram: "@", badgeClass: "bg-black text-white dark:bg-white dark:text-black" },
@@ -51,12 +53,9 @@ function CreatorSettingsContent() {
   const [payoutSaving, setPayoutSaving] = useState(false);
   const [payoutSaved, setPayoutSaved] = useState(false);
 
-  const [tiktok, setTiktok] = useState<TikTokConnection | null>(null);
-  const [tiktokBusy, setTiktokBusy] = useState(false);
-
   const [connections, setConnections] = useState<Partial<Record<SocialPlatform, SocialConnection>>>({});
   const [busyPlatform, setBusyPlatform] = useState<SocialPlatform | null>(null);
-  const [messages, setMessages] = useState<Partial<Record<SocialPlatform | "tiktok", string>>>({});
+  const [messages, setMessages] = useState<Partial<Record<SocialPlatform, string>>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -64,12 +63,6 @@ function CreatorSettingsContent() {
       setPayout(details);
       setPayoutLoading(false);
     });
-    return () => unsubscribe();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    const unsubscribe = subscribeToTikTokConnection(user.id, setTiktok);
     return () => unsubscribe();
   }, [user]);
 
@@ -84,47 +77,18 @@ function CreatorSettingsContent() {
   // fragment, never a query string — fragments never reach the server/logs. This is
   // the only place the raw tokens are ever visible in transit. See
   // src/app/api/_lib/social-oauth.ts for the shared redirect-building helper every
-  // platform's callback route uses, and src/app/api/tiktok/callback/route.ts for
-  // TikTok's (kept separate — it predates this page and uses its own storage shape).
+  // platform's callback route uses.
   useEffect(() => {
     if (!user || typeof window === "undefined") return;
     const hash = window.location.hash;
     if (!hash) return;
     const params = new URLSearchParams(hash.slice(1));
 
-    if (hash.includes("tiktok_")) {
-      const error = params.get("tiktok_error");
-      if (error) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from a one-time URL fragment on mount, not derived render state
-        setMessages((m) => ({ ...m, tiktok: decodeURIComponent(error) }));
-        window.history.replaceState(null, "", window.location.pathname);
-        return;
-      }
-      const accessToken = params.get("tiktok_access_token");
-      const refreshToken = params.get("tiktok_refresh_token");
-      const expiresIn = params.get("tiktok_expires_in");
-      const openId = params.get("tiktok_open_id");
-      const displayName = params.get("tiktok_display_name");
-      if (accessToken && refreshToken && openId) {
-        saveTikTokConnection(user.id, {
-          openId,
-          displayName: displayName ?? "",
-          accessToken,
-          refreshToken,
-          expiresAt: Date.now() + Number(expiresIn ?? "0") * 1000,
-          connectedAt: Date.now(),
-        })
-          .then(() => setMessages((m) => ({ ...m, tiktok: "TikTok account connected." })))
-          .catch(() => setMessages((m) => ({ ...m, tiktok: "Connected, but couldn't save the connection. Try again." })));
-        window.history.replaceState(null, "", window.location.pathname);
-      }
-      return;
-    }
-
     for (const platform of CONNECTABLE_PLATFORMS) {
       if (!hash.includes(`${platform}_`)) continue;
       const error = params.get(`${platform}_error`);
       if (error) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from a one-time URL fragment on mount, not derived render state
         setMessages((m) => ({ ...m, [platform]: decodeURIComponent(error) }));
         window.history.replaceState(null, "", window.location.pathname);
         return;
@@ -165,16 +129,6 @@ function CreatorSettingsContent() {
       setPayoutSaved(true);
     } finally {
       setPayoutSaving(false);
-    }
-  };
-
-  const handleDisconnectTikTok = async () => {
-    setTiktokBusy(true);
-    try {
-      await disconnectTikTok(user.id);
-      setMessages((m) => ({ ...m, tiktok: undefined }));
-    } finally {
-      setTiktokBusy(false);
     }
   };
 
@@ -284,24 +238,10 @@ function CreatorSettingsContent() {
       <section className="mt-6">
         <h2 className="font-display text-lg font-bold text-slate-900 dark:text-white">Connected accounts</h2>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          Connect the accounts you post clips from — TikTok already auto-fetches real view/like counts when you
-          submit a matching link (see Campaigns).
+          Add the accounts you post clips from. Enter your handle or profile link for any of them.
         </p>
 
         <div className="mt-4 flex flex-col gap-3">
-          {/* TikTok — kept on its existing lib/tiktok.ts storage, see comment above */}
-          <SocialCard
-            name="TikTok"
-            badgeClass="bg-black text-white"
-            monogram="Tt"
-            connected={!!tiktok}
-            handle={tiktok?.displayName}
-            message={messages.tiktok}
-            busy={tiktokBusy}
-            onConnect="/api/tiktok/authorize"
-            onDisconnect={handleDisconnectTikTok}
-          />
-
           {CONNECTABLE_PLATFORMS.map((platform) => {
             const meta = socialMeta[platform];
             const connection = connections[platform];
@@ -322,18 +262,24 @@ function CreatorSettingsContent() {
             );
           })}
 
-          {/* Bluesky's OAuth (AT Protocol) isn't built yet, so it's manual-entry only. */}
-          <SocialCard
-            name="Bluesky"
-            badgeClass={socialMeta.bluesky.badgeClass}
-            monogram={socialMeta.bluesky.monogram}
-            connected={!!connections.bluesky}
-            handle={connections.bluesky?.handle}
-            message={messages.bluesky}
-            busy={busyPlatform === "bluesky"}
-            onDisconnect={() => handleDisconnectSocial("bluesky")}
-            onManualSave={(handle) => handleSaveManualSocial("bluesky", handle)}
-          />
+          {MANUAL_ONLY_PLATFORMS.map((platform) => {
+            const meta = socialMeta[platform];
+            const connection = connections[platform];
+            return (
+              <SocialCard
+                key={platform}
+                name={meta.name}
+                badgeClass={meta.badgeClass}
+                monogram={meta.monogram}
+                connected={!!connection}
+                handle={connection?.handle}
+                message={messages[platform]}
+                busy={busyPlatform === platform}
+                onDisconnect={() => handleDisconnectSocial(platform)}
+                onManualSave={(handle) => handleSaveManualSocial(platform, handle)}
+              />
+            );
+          })}
         </div>
       </section>
     </div>

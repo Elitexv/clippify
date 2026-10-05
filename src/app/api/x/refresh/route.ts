@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 export async function POST(request: NextRequest) {
   const clientId = process.env.X_CLIENT_ID;
   const clientSecret = process.env.X_CLIENT_SECRET;

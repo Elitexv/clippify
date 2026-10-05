@@ -1,13 +1,10 @@
 import { deleteDoc, doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-// Shared storage for every social OAuth connection except TikTok, which already had
-// its own users/{uid}/tiktok/connection doc before this existed (see src/lib/tiktok.ts)
-// — left as-is rather than migrated, to avoid touching a working integration. Every
-// platform added after TikTok stores its tokens the same shape, under
-// users/{uid}/socials/{platform}, so the OAuth plumbing per platform only has to
-// differ where the platforms actually differ (endpoints, token lifetimes).
-export type SocialPlatform = "instagram" | "reddit" | "threads" | "x" | "bluesky";
+// Storage for every social account a creator links, one doc per platform under
+// users/{uid}/socials/{platform}. Most entries are manual handles; OAuth-connected
+// ones also carry tokens.
+export type SocialPlatform = "tiktok" | "instagram" | "reddit" | "threads" | "x" | "bluesky";
 
 export type SocialConnection = {
   handle: string;
@@ -36,7 +33,7 @@ export async function getSocialConnection(uid: string, platform: SocialPlatform)
 }
 
 export function subscribeToSocialConnections(uid: string, callback: (connections: Partial<Record<SocialPlatform, SocialConnection>>) => void) {
-  const platforms: SocialPlatform[] = ["instagram", "reddit", "threads", "x", "bluesky"];
+  const platforms: SocialPlatform[] = ["tiktok", "instagram", "reddit", "threads", "x", "bluesky"];
   const state: Partial<Record<SocialPlatform, SocialConnection>> = {};
   const unsubscribers = platforms.map((platform) =>
     onSnapshot(
@@ -78,8 +75,7 @@ const SELF_REFRESH_PLATFORMS: SocialPlatform[] = ["instagram", "threads"];
 /**
  * Returns a usable access token for this creator's connected account on the given
  * platform, refreshing it first if it's expired or about to expire (mirrors
- * getValidTikTokAccessToken in src/lib/tiktok.ts, generalized across platforms since
- * they all share this same shape now). expiresAt of 0 means "never expires, nothing
+ * they all share the same shape). expiresAt of 0 means "never expires, nothing
  * to refresh." Returns null if there's no connection or the refresh itself fails.
  */
 export async function getValidSocialAccessToken(uid: string, platform: SocialPlatform): Promise<string | null> {

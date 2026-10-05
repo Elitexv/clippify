@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/app/api/_lib/firebase-admin";
 import { createBachsCheckout } from "@/app/api/_lib/bachs";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 // Creates the campaign as "awaiting_payment" (invisible to creators — campaigns read
 // rules only expose "active") and opens a Bachs checkout for the server-computed total.
 // The campaign goes live only when the signed webhook confirms payment.

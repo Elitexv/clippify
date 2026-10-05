@@ -32,8 +32,7 @@ export default function PrivacyPage() {
       <ul>
         <li>Clip videos you upload or link, campaign flyers, campaign briefs and budgets.</li>
         <li>
-          Any view/like counts we fetch on your behalf from YouTube (for a pasted YouTube link) or
-          from your own connected TikTok account (see Section 3).
+          View/like counts we fetch on your behalf for a pasted YouTube link.
         </li>
       </ul>
       <h3>Payment and transaction records</h3>
@@ -75,18 +74,13 @@ export default function PrivacyPage() {
       </p>
 
       <h2>3. Third-party platform connections (TikTok and YouTube)</h2>
-      <h3>TikTok (&ldquo;Connect TikTok&rdquo;)</h3>
+      <h3>Social account handles</h3>
       <p>
-        From your Profile page, you can optionally connect a TikTok account using TikTok&apos;s
-        official Login Kit. If you do, TikTok shares with us: your TikTok user ID, display name,
-        and an access/refresh token scoped to the <code>user.info.basic</code> and{" "}
-        <code>video.list</code> permissions you approve. We use this only to look up view and like
-        counts for videos on <strong>your own</strong> connected account when you submit a matching
-        TikTok link as a clip — we do not read your private messages, followers, or any data
-        outside those two scopes, and we never post on your behalf. Your TikTok tokens are stored
-        under your own user record and are only ever readable by you (or an admin, for support
-        purposes) — see Section 5. You can disconnect at any time from your Profile page, which
-        deletes the stored tokens immediately. Your use of TikTok itself remains subject to{" "}
+        On your Creator Settings page, you can add the handle or profile link of the social accounts
+        you post clips from (TikTok, Instagram, Reddit, Threads, X, and Bluesky). We store what you
+        enter and show it on your profile. We don&apos;t connect to those platforms on your behalf
+        for these handles, and we don&apos;t collect anything from them. Your use of each platform
+        remains subject to its own privacy policy, including{" "}
         <a href="https://www.tiktok.com/legal/page/row/privacy-policy/en" target="_blank" rel="noopener noreferrer">
           TikTok&apos;s own Privacy Policy
         </a>
@@ -124,10 +118,10 @@ export default function PrivacyPage() {
         just in the app&apos;s interface. In practice, that means:
       </p>
       <ul>
-        <li>You can always read and update your own profile, content, and TikTok connection.</li>
+        <li>You can always read and update your own profile, content, and linked social accounts.</li>
         <li>
           A brand can see clips submitted to their own campaigns; other users&apos; private data
-          (like stored TikTok tokens or transaction history) isn&apos;t exposed to them.
+          (like stored platform tokens or transaction history) isn&apos;t exposed to them.
         </li>
         <li>
           Admins have broader access needed to moderate content, manage accounts, and configure the
@@ -154,10 +148,10 @@ export default function PrivacyPage() {
           essential to the Platform working and isn&apos;t used for tracking across other sites.
         </li>
         <li>
-          <strong>A short-lived TikTok OAuth cookie</strong> (<code>tiktok_oauth_state</code>) — set
-          only during the few minutes of the &quot;Connect TikTok&quot; flow, used to verify the
-          request came from you and not an attacker. It expires automatically after 10 minutes and
-          is deleted as soon as the connection completes.
+          <strong>Short-lived OAuth cookies</strong> — set only during the few minutes of a social
+          account &quot;Connect&quot; flow, used to verify the request came from you and not an
+          attacker. They expire automatically after 10 minutes and are deleted as soon as the
+          connection completes.
         </li>
         <li>
           <strong>A theme preference</strong> (light/dark mode) stored locally in your browser, used

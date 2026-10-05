@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 const STATE_COOKIE = "threads_oauth_state";
 const SCOPE = "threads_basic";
 

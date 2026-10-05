@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 const USER_AGENT = "web:com.clippifi.app:v1.0 (by /u/clippifi)";
 
 export async function POST(request: NextRequest) {

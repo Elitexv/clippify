@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 // Same "refresh the access token itself" pattern as Instagram — see
 // src/app/api/instagram/refresh/route.ts.
 export async function POST(request: NextRequest) {

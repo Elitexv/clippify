@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 
-// Web-only route (see src/app/api/tiktok/authorize/route.ts for why — same
+// Web-only route (see scripts/build-mobile.mjs for why — same
 // mobile static-export conflict, same fix in scripts/build-mobile.mjs).
 
 const STATE_COOKIE = "reddit_oauth_state";

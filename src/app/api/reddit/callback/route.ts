@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { socialErrorRedirect, socialSuccessRedirect } from "@/app/api/_lib/social-oauth";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 const STATE_COOKIE = "reddit_oauth_state";
 // Reddit requires every API call (including the token exchange) to send a
 // descriptive, unique User-Agent or it aggressively rate-limits/blocks the request —

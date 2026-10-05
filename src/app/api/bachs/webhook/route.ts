@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/app/api/_lib/firebase-admin";
 import { verifyBachsSignature } from "@/app/api/_lib/bachs";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 // Bachs' source of truth for "this campaign is paid". Nothing here trusts the browser:
 // the signature is checked against the raw body, and the campaign only goes live when
 // the reference, checkout id, currency, and amount all match what we recorded at

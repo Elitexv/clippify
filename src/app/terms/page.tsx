@@ -66,11 +66,10 @@ export default function TermsPage() {
         what you&apos;re posting/submitting, is a breach of these Terms.
       </p>
       <p>
-        Creators can optionally connect a TikTok account from their Profile page. This is entirely
-        optional, is used only to fetch view/like counts for videos on <strong>your own</strong>{" "}
-        connected TikTok account, and is described in more detail in our{" "}
-        <Link href="/privacy">Privacy Policy</Link>. Disconnecting is available at any time from
-        the same page.
+        Creators can optionally add their social account handles (TikTok, Instagram, Reddit,
+        Threads, X, and Bluesky) on their Creator Settings page. You&apos;re responsible for making
+        sure any handle you add is your own, and it&apos;s described in more detail in our{" "}
+        <Link href="/privacy">Privacy Policy</Link>.
       </p>
 
       <h2>4. Campaigns (Brands)</h2>
@@ -121,7 +120,7 @@ export default function TermsPage() {
           campaign&apos;s payout don&apos;t apply retroactively to your already-submitted clips.
         </li>
         <li>
-          Video/like counts shown next to a clip (from YouTube or a connected TikTok account) are
+          Video/like counts shown next to a clip (from a YouTube link) are
           fetched from the relevant platform&apos;s public API and reflect that platform&apos;s
           data, not Clippifi&apos;s own measurement — we&apos;re not responsible for their
           accuracy.

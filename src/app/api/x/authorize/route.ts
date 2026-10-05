@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID, createHash, randomBytes } from "node:crypto";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 const STATE_COOKIE = "x_oauth_state";
 const VERIFIER_COOKIE = "x_oauth_verifier";
 // offline.access is what makes X hand back a refresh_token at all.

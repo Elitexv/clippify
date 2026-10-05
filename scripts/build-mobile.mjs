@@ -4,7 +4,7 @@
 // analyze, so there's no way to conditionally disable a route based on BUILD_TARGET
 // from inside the route file itself. Instead, this script removes src/app/api for the
 // duration of the mobile build (those routes, e.g. TikTok OAuth, are web-only anyway —
-// see src/app/api/tiktok/authorize/route.ts) and always restores it afterward, even if
+// see scripts/build-mobile.mjs) and always restores it afterward, even if
 // the build fails.
 //
 // This copies-then-deletes rather than renaming in place: on Windows, renaming this

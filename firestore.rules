@@ -43,17 +43,8 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
 
-      // OAuth tokens for a creator's connected TikTok account (see src/lib/tiktok.ts).
-      // Written directly by the client after the server-side OAuth exchange, since
-      // there's no Firebase Admin access from the token-exchange API route — only the
-      // owner can ever read or write their own tokens.
-      match /tiktok/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-
-      // OAuth tokens for every other connected social account (Instagram, Reddit,
-      // Threads, X, Bluesky — see src/lib/socials.ts), one doc per platform. Same
-      // owner-only trust model as /tiktok above.
+      // Social accounts a creator links (handles, and OAuth tokens where a platform
+      // uses OAuth) — see src/lib/socials.ts, one doc per platform.
       match /socials/{platform} {
         allow read, write: if isOwner(userId);
       }

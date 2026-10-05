@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { socialErrorRedirect, socialSuccessRedirect } from "@/app/api/_lib/social-oauth";
 
-// Web-only route — see src/app/api/tiktok/authorize/route.ts.
+// Web-only route — see scripts/build-mobile.mjs.
 const STATE_COOKIE = "threads_oauth_state";
 
 export async function GET(request: NextRequest) {
