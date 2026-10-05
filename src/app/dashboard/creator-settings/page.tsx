@@ -14,6 +14,7 @@ import {
 import { disconnectTikTok, saveTikTokConnection, subscribeToTikTokConnection, type TikTokConnection } from "@/lib/tiktok";
 import {
   disconnectSocial,
+  saveManualSocialHandle,
   saveSocialConnection,
   subscribeToSocialConnections,
   type SocialConnection,
@@ -177,6 +178,17 @@ function CreatorSettingsContent() {
     }
   };
 
+  const handleSaveManualSocial = async (platform: SocialPlatform, handle: string) => {
+    const trimmed = handle.trim();
+    if (!trimmed) return;
+    try {
+      await saveManualSocialHandle(user.id, platform, trimmed);
+      setMessages((m) => ({ ...m, [platform]: `${socialMeta[platform].name} handle saved.` }));
+    } catch {
+      setMessages((m) => ({ ...m, [platform]: "Couldn't save that handle. Try again." }));
+    }
+  };
+
   const handleDisconnectSocial = async (platform: SocialPlatform) => {
     setBusyPlatform(platform);
     try {
@@ -305,21 +317,22 @@ function CreatorSettingsContent() {
                 busy={busyPlatform === platform}
                 onConnect={`/api/${platform}/authorize`}
                 onDisconnect={() => handleDisconnectSocial(platform)}
+                onManualSave={(handle) => handleSaveManualSocial(platform, handle)}
               />
             );
           })}
 
-          {/* Bluesky uses AT Protocol OAuth, which has no client secret, mandatory
-              DPoP-bound tokens, and requires a persistent server-side session store
-              (cookies alone aren't enough) — a bigger infra decision than the other
-              platforms needed. Shown honestly as not-yet-available rather than a
-              button that doesn't work; see the wrap-up message for the tradeoff. */}
+          {/* Bluesky's OAuth (AT Protocol) isn't built yet, so it's manual-entry only. */}
           <SocialCard
             name="Bluesky"
             badgeClass={socialMeta.bluesky.badgeClass}
             monogram={socialMeta.bluesky.monogram}
-            connected={false}
-            comingSoon
+            connected={!!connections.bluesky}
+            handle={connections.bluesky?.handle}
+            message={messages.bluesky}
+            busy={busyPlatform === "bluesky"}
+            onDisconnect={() => handleDisconnectSocial("bluesky")}
+            onManualSave={(handle) => handleSaveManualSocial("bluesky", handle)}
           />
         </div>
       </section>
@@ -337,7 +350,7 @@ function SocialCard({
   busy,
   onConnect,
   onDisconnect,
-  comingSoon,
+  onManualSave,
 }: {
   name: string;
   badgeClass: string;
@@ -348,40 +361,65 @@ function SocialCard({
   busy?: boolean;
   onConnect?: string;
   onDisconnect?: () => void;
-  comingSoon?: boolean;
+  onManualSave?: (handle: string) => void;
 }) {
+  const [draft, setDraft] = useState("");
+
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-4 dark:border-white/10 dark:bg-[#111]">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${badgeClass}`}>
-          {monogram}
-        </span>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-slate-900 dark:text-white">{name}</p>
-          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-            {comingSoon
-              ? "Not available yet"
-              : connected
-                ? `Connected${handle ? ` as ${handle}` : ""}`
-                : "Not connected"}
-          </p>
-          {message && <p className="mt-1 text-xs text-amber-600 dark:text-yellow-400">{message}</p>}
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-4 dark:border-white/10 dark:bg-[#111]">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${badgeClass}`}>
+            {monogram}
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-900 dark:text-white">{name}</p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+              {connected ? `Connected${handle ? ` as ${handle}` : ""}` : "Not connected"}
+            </p>
+            {message && <p className="mt-1 text-xs text-amber-600 dark:text-yellow-400">{message}</p>}
+          </div>
         </div>
+
+        {connected ? (
+          <button
+            onClick={onDisconnect}
+            disabled={busy}
+            className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs ${btnSecondary} disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            Disconnect
+          </button>
+        ) : onConnect ? (
+          <a href={onConnect} className={`shrink-0 rounded-lg px-3 py-2 text-xs ${btnPrimary}`}>
+            Connect
+          </a>
+        ) : null}
       </div>
 
-      {comingSoon ? null : connected ? (
-        <button
-          onClick={onDisconnect}
-          disabled={busy}
-          className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs ${btnSecondary} disabled:cursor-not-allowed disabled:opacity-60`}
+      {!connected && onManualSave && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onManualSave(draft);
+            setDraft("");
+          }}
+          className="flex gap-2"
         >
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-          Disconnect
-        </button>
-      ) : (
-        <a href={onConnect} className={`shrink-0 rounded-lg px-3 py-2 text-xs ${btnPrimary}`}>
-          Connect
-        </a>
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={`Or enter your ${name} handle or profile link`}
+            className={`${inputClass} mt-0 flex-1 text-xs`}
+          />
+          <button
+            type="submit"
+            disabled={!draft.trim()}
+            className={`shrink-0 rounded-lg px-3 py-2 text-xs ${btnSecondary} disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            Save
+          </button>
+        </form>
       )}
     </div>
   );

@@ -11,6 +11,9 @@ export type SocialPlatform = "instagram" | "reddit" | "threads" | "x" | "bluesky
 
 export type SocialConnection = {
   handle: string;
+  // Set when the creator typed their handle in themselves instead of connecting via
+  // OAuth — there's no token, so nothing can be fetched from the platform on their behalf.
+  manual?: boolean;
   accessToken: string;
   refreshToken: string;
   // 0 means "doesn't expire / no refresh flow for this platform" (e.g. Bluesky's
@@ -52,6 +55,17 @@ export function subscribeToSocialConnections(uid: string, callback: (connections
   return () => unsubscribers.forEach((unsub) => unsub());
 }
 
+export async function saveManualSocialHandle(uid: string, platform: SocialPlatform, handle: string) {
+  await saveSocialConnection(uid, platform, {
+    handle,
+    manual: true,
+    accessToken: "",
+    refreshToken: "",
+    expiresAt: 0,
+    connectedAt: Date.now(),
+  });
+}
+
 export async function disconnectSocial(uid: string, platform: SocialPlatform) {
   await deleteDoc(connectionDoc(uid, platform));
 }
@@ -70,7 +84,7 @@ const SELF_REFRESH_PLATFORMS: SocialPlatform[] = ["instagram", "threads"];
  */
 export async function getValidSocialAccessToken(uid: string, platform: SocialPlatform): Promise<string | null> {
   const connection = await getSocialConnection(uid, platform);
-  if (!connection) return null;
+  if (!connection || connection.manual || !connection.accessToken) return null;
 
   const expiresSoon = connection.expiresAt !== 0 && connection.expiresAt < Date.now() + 5 * 60 * 1000;
   if (!expiresSoon) return connection.accessToken;
