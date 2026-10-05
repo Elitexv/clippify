@@ -7,6 +7,11 @@ import { createBachsCheckout } from "@/app/api/_lib/bachs";
 // Creates the campaign as "awaiting_payment" (invisible to creators — campaigns read
 // rules only expose "active") and opens a Bachs checkout for the server-computed total.
 // The campaign goes live only when the signed webhook confirms payment.
+// Cold-start Firebase Admin init plus the Firestore and Bachs calls can outlast the
+// platform's default function timeout on a fresh instance.
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     return await handleCheckout(request);
