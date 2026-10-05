@@ -1,8 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// Server-only. Bachs' live API base; the secret key never leaves the server.
-const BACHS_API = "https://api.bachs.io/v1";
 const SIGNATURE_TOLERANCE_SECONDS = 300;
+
+// Sandbox and live keys only work against their own API hosts.
+function bachsApiBase(secret: string) {
+  return secret.startsWith("sk_sandbox_") ? "https://sandbox-api.bachs.io/v1" : "https://api.bachs.io/v1";
+}
 
 export type BachsCheckout = { checkout_id: string; checkout_url: string };
 
@@ -22,7 +25,7 @@ export async function createBachsCheckout({
   const secret = process.env.BACHS_SECRET_KEY;
   if (!secret) throw new Error("BACHS_SECRET_KEY isn't set.");
 
-  const res = await fetch(`${BACHS_API}/checkout-sessions`, {
+  const res = await fetch(`${bachsApiBase(secret)}/checkout-sessions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${secret}`,
