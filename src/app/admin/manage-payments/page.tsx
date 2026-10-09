@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, CreditCard, Eye, EyeOff, KeyRound, Landmark, ShieldAlert, Zap } from "lucide-react";
+import { Banknote, Check, CreditCard, Eye, EyeOff, KeyRound, Landmark, ShieldAlert, Zap } from "lucide-react";
 import { btnPrimary } from "@/lib/button-styles";
 import {
   defaultPlatformSettings,
@@ -23,6 +23,7 @@ const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 const providerIcon: Record<ProviderId, typeof CreditCard> = {
   stripe: CreditCard,
   flutterwave: Zap,
+  paystack: Banknote,
   bank: Landmark,
 };
 
@@ -189,8 +190,10 @@ export default function ManagePaymentsPage() {
 
       <div className="mt-8 flex items-center gap-2 text-xs text-slate-400">
         <KeyRound className="h-3.5 w-3.5" />
-        Campaign checkout runs through Bachs, configured with server environment variables
-        (see .env.local), not the provider cards on this page.
+        A provider only appears as a payment option at campaign checkout once it&apos;s
+        connected (all keys filled), enabled here, <em>and</em> has real checkout processing
+        built — right now that&apos;s Paystack. Bachs is also offered at checkout, configured
+        separately via server environment variables (see .env.local), not these cards.
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-export type ProviderId = "stripe" | "flutterwave" | "bank";
+export type ProviderId = "stripe" | "flutterwave" | "paystack" | "bank";
 
 export type ProviderConfig = {
   enabled: boolean;
@@ -32,6 +32,7 @@ export type KeyField = {
 export const providerMeta: Record<ProviderId, { name: string; description: string }> = {
   stripe: { name: "Stripe", description: "Card payments via Stripe Checkout." },
   flutterwave: { name: "Flutterwave", description: "Cards, mobile money, and bank transfers via Flutterwave." },
+  paystack: { name: "Paystack", description: "Cards and bank transfers via Paystack." },
   bank: { name: "Bank transfer", description: "Manual ACH / wire transfer details." },
 };
 
@@ -46,6 +47,10 @@ export const providerFieldSchemas: Record<ProviderId, KeyField[]> = {
     { key: "secretKey", label: "Secret key", placeholder: "FLWSECK-…", secret: true },
     { key: "webhookSecretHash", label: "Webhook secret hash", placeholder: "Your configured hash", secret: true },
   ],
+  paystack: [
+    { key: "publicKey", label: "Public key", placeholder: "pk_live_…" },
+    { key: "secretKey", label: "Secret key", placeholder: "sk_live_…", secret: true },
+  ],
   bank: [
     { key: "accountName", label: "Account holder name", placeholder: "Clippifi Inc." },
     { key: "accountNumber", label: "Account number", placeholder: "000123456789" },
@@ -59,6 +64,7 @@ export const providerFieldSchemas: Record<ProviderId, KeyField[]> = {
 export const providerPublicKeyField: Partial<Record<ProviderId, string>> = {
   stripe: "publishableKey",
   flutterwave: "publicKey",
+  paystack: "publicKey",
 };
 
 const emptyProvider = (): ProviderConfig => ({ enabled: false, keys: {} });
@@ -74,6 +80,7 @@ export const defaultPlatformSettings: PlatformSettings = {
   paymentProviders: {
     stripe: emptyProvider(),
     flutterwave: emptyProvider(),
+    paystack: emptyProvider(),
     bank: emptyProvider(),
   },
 };
@@ -114,6 +121,7 @@ function normalize(raw: unknown): PlatformSettings {
     paymentProviders: {
       stripe: { ...emptyProvider(), ...parsed.paymentProviders?.stripe },
       flutterwave: { ...emptyProvider(), ...parsed.paymentProviders?.flutterwave },
+      paystack: { ...emptyProvider(), ...parsed.paymentProviders?.paystack },
       bank: { ...emptyProvider(), ...parsed.paymentProviders?.bank },
     },
   };
@@ -184,10 +192,14 @@ export function isProviderConnected(providerId: ProviderId, config: ProviderConf
   return providerFieldSchemas[providerId].every((field) => (config.keys[field.key] ?? "").trim().length > 0);
 }
 
-// Providers with a working charge-and-verify flow. Campaign checkout now runs through
-// Bachs (src/app/api/bachs/*), configured by server env vars rather than these cards,
-// so none of the cards below are wired to checkout yet.
-export const PROVIDERS_WITH_REAL_CHECKOUT: ProviderId[] = [];
+// Providers with a working charge-and-verify flow, offered as a payment option at
+// campaign checkout alongside Bachs (src/app/api/bachs/*, configured separately via
+// server env vars, not these cards — see src/app/dashboard/post-job/page.tsx, which
+// combines both). Every other provider here has no real charge/verification step
+// wired up, so "enabling" one would let a brand post a campaign for free with no
+// payment and no record of it. Add a provider here only once it has a real
+// integration like Paystack's (src/lib/paystack.ts).
+export const PROVIDERS_WITH_REAL_CHECKOUT: ProviderId[] = ["paystack"];
 
 export function hasRealCheckout(providerId: ProviderId): boolean {
   return PROVIDERS_WITH_REAL_CHECKOUT.includes(providerId);

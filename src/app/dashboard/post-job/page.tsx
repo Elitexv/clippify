@@ -1,20 +1,61 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { ImagePlus, Link2, Loader2, X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Banknote,
+  CheckCircle2,
+  CreditCard,
+  ImagePlus,
+  Landmark,
+  Link2,
+  Loader2,
+  Wallet,
+  X,
+  Zap,
+} from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { btnPrimary, btnSecondary } from "@/lib/button-styles";
-import { uploadCampaignFlyer } from "@/lib/firebase-helpers";
+import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
 import { auth } from "@/lib/firebase";
-import { defaultPublicSettings as defaultSettings, getPublicSettings, parseCurrency, type PublicPlatformSettings } from "@/lib/platform-settings";
+import { payWithPaystack } from "@/lib/paystack";
+import { recordTransaction } from "@/lib/transactions";
+import {
+  defaultPublicSettings as defaultSettings,
+  getPublicSettings,
+  parseCurrency,
+  providerMeta,
+  type PublicPlatformSettings,
+  type ProviderId,
+} from "@/lib/platform-settings";
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
-type Step = "form" | "payment";
+// "bachs" isn't a ProviderId — it's env-configured, not set up through Manage Payments
+// (see src/lib/platform-settings.ts) — so it's always offered alongside whatever
+// Manage Payments providers are actually connected and enabled.
+type PaymentMethod = "bachs" | ProviderId;
+
+const methodIcon: Record<PaymentMethod, typeof CreditCard> = {
+  bachs: Wallet,
+  stripe: CreditCard,
+  flutterwave: Zap,
+  paystack: Banknote,
+  bank: Landmark,
+};
+
+const methodLabel: Record<PaymentMethod, string> = {
+  bachs: "Bachs (card, mobile money, stablecoins)",
+  stripe: providerMeta.stripe.name,
+  flutterwave: providerMeta.flutterwave.name,
+  paystack: providerMeta.paystack.name,
+  bank: providerMeta.bank.name,
+};
+
+type Step = "form" | "payment" | "success";
 
 export default function PostCampaignPage() {
   return (
@@ -28,6 +69,7 @@ export default function PostCampaignPage() {
 
 function PostCampaignPageContent() {
   const { user } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [title, setTitle] = useState("");
   const [channelLink, setChannelLink] = useState("");
@@ -41,6 +83,12 @@ function PostCampaignPageContent() {
 
   const [settings, setSettings] = useState<PublicPlatformSettings>(defaultSettings);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  // Bachs first — it's server-verified end to end (see src/app/api/bachs/webhook).
+  // Paystack (or any other Manage Payments provider with real checkout wired up)
+  // comes after as a fallback.
+  const methodOptions: PaymentMethod[] = ["bachs", ...settings.liveProviders];
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const method = selectedMethod ?? methodOptions[0] ?? null;
   const [paying, setPaying] = useState(false);
 
   const cancelled = searchParams.get("cancelled") === "1";
@@ -84,45 +132,128 @@ function PostCampaignPageContent() {
     setStep("payment");
   };
 
-  // The server recomputes the total from the platform's fee settings — the figure
-  // shown here is only a preview. The campaign stays hidden until Bachs' signed
-  // webhook confirms payment (see src/app/api/bachs/webhook/route.ts).
+  const postAnother = () => {
+    setTitle("");
+    setChannelLink("");
+    setBrief("");
+    setBudget("");
+    setDeadline("");
+    handleFlyerChange(null);
+    setFormError("");
+    setStep("form");
+  };
+
+  // Bachs redirects away to a hosted checkout — the campaign stays hidden until its
+  // signed webhook confirms payment (see src/app/api/bachs/webhook/route.ts). Paystack
+  // resolves right here in the tab, so that path creates the campaign directly once
+  // payWithPaystack reports success — there's no server-side confirmation step for it,
+  // unlike Bachs.
   const handlePay = async () => {
     if (!user || !auth.currentUser) {
       setFormError("You must be signed in to post a campaign.");
       return;
     }
+    if (!method) {
+      setFormError("Choose a payment method to continue.");
+      return;
+    }
+
     setPaying(true);
     setFormError("");
     try {
+      // Upload the flyer *before* charging the customer — if this fails (e.g. Storage
+      // misconfigured), they see the error immediately instead of being charged and
+      // then stuck on "Processing payment..." while a post-payment step silently hangs.
       const flyerUrl = flyer ? await uploadCampaignFlyer(user.id, flyer) : "";
-      const idToken = await auth.currentUser.getIdToken();
-      const res = await fetch("/api/bachs/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          title,
-          channelLink,
-          brief,
-          budget: budgetAmount,
-          deadline,
-          flyerUrl,
-        }),
+
+      if (method === "bachs") {
+        const idToken = await auth.currentUser.getIdToken();
+        const res = await fetch("/api/bachs/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            title,
+            channelLink,
+            brief,
+            budget: budgetAmount,
+            deadline,
+            flyerUrl,
+          }),
+        });
+        const text = await res.text();
+        let data: { checkoutUrl?: string; error?: string } = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(`Checkout failed (HTTP ${res.status}). Try again.`);
+        }
+        if (!res.ok || !data.checkoutUrl) {
+          throw new Error(data.error || `Checkout failed (HTTP ${res.status}). Try again.`);
+        }
+        window.location.assign(data.checkoutUrl);
+        return;
+      }
+
+      if (method !== "paystack") {
+        throw new Error(`${providerMeta[method].name} isn't wired up for checkout yet.`);
+      }
+
+      const publicKey = settings.providerPublicKeys.paystack;
+      if (!publicKey) throw new Error("Paystack isn't fully configured yet. Ask an admin to check Manage Payments.");
+      // eslint-disable-next-line react-hooks/purity -- runs only inside this click handler, never during render
+      const reference = `clippifi-campaign-${user.id}-${Date.now()}`;
+      const result = await payWithPaystack({
+        publicKey,
+        email: user.email,
+        amountNaira: total,
+        reference,
       });
-      const text = await res.text();
-      let data: { checkoutUrl?: string; error?: string } = {};
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch {
-        throw new Error(`Checkout failed (HTTP ${res.status}). Try again.`);
+      if (!result) {
+        await recordTransaction({
+          type: "campaign",
+          status: "failed",
+          userId: user.id,
+          userName: user.name,
+          amount: total,
+          provider: "paystack",
+          reference,
+          failureReason: "Payment window closed before completion",
+          relatedTitle: title.trim(),
+        }).catch((err) => console.error("Failed to record transaction:", err));
+        setPaying(false);
+        return;
       }
-      if (!res.ok || !data.checkoutUrl) {
-        throw new Error(data.error || `Checkout failed (HTTP ${res.status}). Try again.`);
-      }
-      window.location.assign(data.checkoutUrl);
+      const paymentReference = result.reference;
+      await recordTransaction({
+        type: "campaign",
+        status: "success",
+        userId: user.id,
+        userName: user.name,
+        amount: total,
+        provider: "paystack",
+        reference: paymentReference,
+        relatedTitle: title.trim(),
+      }).catch((err) => console.error("Failed to record transaction:", err));
+
+      await createCampaign({
+        brandId: user.id,
+        brandName: user.name,
+        title: title.trim(),
+        channelLink: channelLink.trim(),
+        brief,
+        budget: budgetAmount,
+        deadline,
+        flyerUrl,
+        status: "active",
+        paymentProvider: "paystack",
+        paymentReference,
+      });
+      setPaying(false);
+      setStep("success");
+      setTimeout(() => router.push("/dashboard/campaigns"), 1800);
     } catch (error) {
       setPaying(false);
       setFormError(error instanceof Error ? error.message : "Could not start checkout. Please try again.");
@@ -151,7 +282,38 @@ function PostCampaignPageContent() {
         </p>
       )}
 
-      {step === "payment" ? (
+      {step === "success" ? (
+        <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 px-6 py-14 text-center dark:border-emerald-400/20 dark:bg-emerald-400/5">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400">
+            <CheckCircle2 className="h-6 w-6" />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
+            Payment successful
+          </h2>
+          <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
+            Payment of ₦{total.toFixed(2)} received. &ldquo;{title}&rdquo; is live — streamers can
+            now follow your link and start submitting clips.
+          </p>
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Taking you to My Campaigns…
+          </p>
+          <div className="mt-5 flex gap-2">
+            <button
+              onClick={() => router.push("/dashboard/campaigns")}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-transform duration-200 hover:scale-[1.02] active:scale-95 dark:bg-yellow-400 dark:text-black"
+            >
+              View My Campaigns
+            </button>
+            <button
+              onClick={postAnother}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              Post another
+            </button>
+          </div>
+        </div>
+      ) : step === "payment" ? (
         <div className="mt-6 flex flex-col gap-5 rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]">
           <div>
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -177,6 +339,37 @@ function PostCampaignPageContent() {
             </div>
           </div>
 
+          {methodOptions.length > 1 && (
+            <div>
+              <p className={labelClass}>Payment method</p>
+              <div className="mt-2 flex flex-col gap-2">
+                {methodOptions.map((m) => {
+                  const Icon = methodIcon[m];
+                  return (
+                    <label
+                      key={m}
+                      className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                        method === m
+                          ? "border-yellow-400 bg-yellow-50 dark:border-yellow-400/40 dark:bg-yellow-400/5"
+                          : "border-slate-200 dark:border-white/10"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment-method"
+                        checked={method === m}
+                        onChange={() => setSelectedMethod(m)}
+                        className="h-4 w-4 accent-amber-500"
+                      />
+                      <Icon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                      <span className="text-slate-700 dark:text-slate-300">{methodLabel[m]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {formError && <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>}
 
           <div className="flex gap-2">
@@ -189,13 +382,13 @@ function PostCampaignPageContent() {
             </button>
             <button
               onClick={handlePay}
-              disabled={paying}
+              disabled={!method || paying}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm ${btnPrimary}`}
             >
               {paying ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Opening checkout…
+                  Processing…
                 </>
               ) : (
                 `Pay ₦${total.toFixed(2)} & post campaign`

@@ -23,8 +23,8 @@ export default function RefundPolicyPage() {
       <h2>1. Campaign payments</h2>
       <p>
         When a brand posts a campaign, the total charged at checkout is the campaign budget plus
-        the processing fee shown at that time. Payment is processed by our payment gateway, Bachs,
-        and the campaign goes live once Bachs confirms the payment.
+        the processing fee shown at that time. Payment is processed by Bachs, or by Paystack
+        where an admin has enabled it, and the campaign goes live once that payment is confirmed.
       </p>
       <p>
         We keep a record of every payment attempt — successful or failed — including the amount,

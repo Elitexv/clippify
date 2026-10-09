@@ -44,8 +44,9 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>We never receive or store your full card number, CVV, or bank login details.</strong>{" "}
-          Those are entered directly with our payment gateway, Bachs, who processes the payment
-          under its own privacy and security terms.
+          Those are entered directly with our payment provider — Bachs, or Paystack where an
+          admin has enabled it — who processes the payment under its own privacy and security
+          terms.
         </li>
       </ul>
       <h3>Technical information</h3>
