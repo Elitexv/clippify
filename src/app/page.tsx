@@ -6,7 +6,6 @@ import ForEveryone from "@/components/landing/ForEveryone";
 import PopularClips from "@/components/landing/PopularClips";
 import TrendingTikTok from "@/components/landing/TrendingTikTok";
 import TopCreators from "@/components/landing/TopCreators";
-import Testimonial from "@/components/landing/Testimonial";
 import CtaBanner from "@/components/landing/CtaBanner";
 import Footer from "@/components/landing/Footer";
 import Reveal from "@/components/landing/Reveal";
@@ -34,9 +33,6 @@ export default function Home() {
         </Reveal>
         <Reveal>
           <TopCreators />
-        </Reveal>
-        <Reveal>
-          <Testimonial />
         </Reveal>
         <Reveal>
           <CtaBanner />

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import { socialErrorRedirect } from "@/app/api/_lib/social-oauth";
 
 // Web-only route (see scripts/build-mobile.mjs for why — same
 // mobile static-export conflict, same fix in scripts/build-mobile.mjs).
@@ -7,15 +8,15 @@ import { randomUUID } from "node:crypto";
 const STATE_COOKIE = "reddit_oauth_state";
 const SCOPE = "identity";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const clientId = process.env.REDDIT_CLIENT_ID;
   const redirectUri = process.env.REDDIT_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    return NextResponse.json(
-      { error: "Reddit isn't configured yet. Set REDDIT_CLIENT_ID and REDDIT_REDIRECT_URI." },
-      { status: 500 },
-    );
+    // A plain NextResponse.json() here would land the browser on a raw JSON page —
+    // this is reached via a full-page <a href> navigation (the "Connect" button),
+    // not a fetch(), so the failure needs to redirect back into the app instead.
+    return socialErrorRedirect(request.nextUrl.origin, "reddit", "Reddit isn't configured yet. Ask an admin to finish setting it up.");
   }
 
   const state = randomUUID();

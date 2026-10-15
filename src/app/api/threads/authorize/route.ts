@@ -1,19 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import { socialErrorRedirect } from "@/app/api/_lib/social-oauth";
 
 // Web-only route — see scripts/build-mobile.mjs.
 const STATE_COOKIE = "threads_oauth_state";
 const SCOPE = "threads_basic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const clientId = process.env.THREADS_CLIENT_ID;
   const redirectUri = process.env.THREADS_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    return NextResponse.json(
-      { error: "Threads isn't configured yet. Set THREADS_CLIENT_ID and THREADS_REDIRECT_URI." },
-      { status: 500 },
-    );
+    // See src/app/api/reddit/authorize/route.ts for why this redirects instead of
+    // returning JSON — reached via a full-page navigation, not a fetch().
+    return socialErrorRedirect(request.nextUrl.origin, "threads", "Threads isn't configured yet. Ask an admin to finish setting it up.");
   }
 
   const state = randomUUID();

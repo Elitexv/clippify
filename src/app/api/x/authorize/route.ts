@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { randomUUID, createHash, randomBytes } from "node:crypto";
+import { socialErrorRedirect } from "@/app/api/_lib/social-oauth";
 
 // Web-only route — see scripts/build-mobile.mjs.
 const STATE_COOKIE = "x_oauth_state";
@@ -11,15 +12,14 @@ function base64url(input: Buffer) {
   return input.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const clientId = process.env.X_CLIENT_ID;
   const redirectUri = process.env.X_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    return NextResponse.json(
-      { error: "X isn't configured yet. Set X_CLIENT_ID and X_REDIRECT_URI." },
-      { status: 500 },
-    );
+    // See src/app/api/reddit/authorize/route.ts for why this redirects instead of
+    // returning JSON — reached via a full-page navigation, not a fetch().
+    return socialErrorRedirect(request.nextUrl.origin, "x", "X isn't configured yet. Ask an admin to finish setting it up.");
   }
 
   const state = randomUUID();

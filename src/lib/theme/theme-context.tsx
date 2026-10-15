@@ -17,6 +17,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored === "light" || stored === "dark") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from localStorage on mount (client-only, can't read in the initial render since this is SSR'd), not derived render state
       setTheme(stored);
     }
   }, []);

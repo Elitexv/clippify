@@ -8,8 +8,16 @@ import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { btnPrimary } from "@/lib/button-styles";
 
-const exploreLinks = ["Find Talent", "Hire Streamers", "Collections", "Popular Creators"];
-const resourceLinks = ["Creator Dashboard", "Blog", "Help Center", "API Docs"];
+type NavLink = { label: string; href: string };
+
+const exploreLinks: NavLink[] = [
+  { label: "Find Talent", href: "/dashboard/browse" },
+  { label: "Hire Streamers", href: "/dashboard/hire" },
+];
+const resourceLinks: NavLink[] = [
+  { label: "Creator Dashboard", href: "/dashboard" },
+  { label: "Help Center", href: "mailto:support@clippii.com" },
+];
 
 const navLink =
   "relative text-sm text-slate-600 hover:text-amber-600 transition-colors after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:scale-x-0 after:bg-amber-500 after:transition-transform after:duration-200 hover:after:scale-x-100 dark:text-slate-300 dark:hover:text-yellow-400 dark:after:bg-yellow-400";
@@ -31,9 +39,6 @@ export default function Navbar() {
           <NavDropdown label="Explore" items={exploreLinks} />
           <a href="#how-it-works" className={navLink}>
             How it Works
-          </a>
-          <a href="#pricing" className={navLink}>
-            Pricing
           </a>
           <a href="#creators" className={navLink}>
             For Creators
@@ -108,9 +113,6 @@ export default function Navbar() {
               <a href="#how-it-works" className="rounded-md px-2 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
                 How it Works
               </a>
-              <a href="#pricing" className="rounded-md px-2 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
-                Pricing
-              </a>
               <a href="#creators" className="rounded-md px-2 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
                 For Creators
               </a>
@@ -145,7 +147,7 @@ export default function Navbar() {
   );
 }
 
-function NavDropdown({ label, items }: { label: string; items: string[] }) {
+function NavDropdown({ label, items }: { label: string; items: NavLink[] }) {
   return (
     <div className="group relative">
       <button className="flex items-center gap-1 text-sm text-slate-600 hover:text-amber-600 dark:text-slate-300 dark:hover:text-yellow-400">
@@ -153,21 +155,31 @@ function NavDropdown({ label, items }: { label: string; items: string[] }) {
         <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" />
       </button>
       <div className="invisible absolute left-1/2 top-full z-50 w-52 -translate-x-1/2 translate-y-1 rounded-xl border border-slate-200 bg-white p-2 opacity-0 shadow-xl shadow-slate-200/60 transition-all duration-200 group-hover:visible group-hover:translate-y-2 group-hover:opacity-100 dark:border-white/10 dark:bg-[#141414] dark:shadow-black/40">
-        {items.map((item) => (
-          <a
-            key={item}
-            href="#"
-            className="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
-          >
-            {item}
-          </a>
-        ))}
+        {items.map((item) =>
+          item.href.startsWith("/") ? (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
+            >
+              {item.label}
+            </Link>
+          ) : (
+            <a
+              key={item.label}
+              href={item.href}
+              className="block rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
+            >
+              {item.label}
+            </a>
+          ),
+        )}
       </div>
     </div>
   );
 }
 
-function MobileGroup({ label, items }: { label: string; items: string[] }) {
+function MobileGroup({ label, items }: { label: string; items: NavLink[] }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <div>
@@ -182,11 +194,25 @@ function MobileGroup({ label, items }: { label: string; items: string[] }) {
         className={`grid overflow-hidden transition-[grid-template-rows] duration-200 ease-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
       >
         <div className="ml-3 min-h-0 flex flex-col border-l border-slate-200 pl-3 dark:border-white/10">
-          {items.map((item) => (
-            <a key={item} href="#" className="rounded-md px-2 py-2 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
-              {item}
-            </a>
-          ))}
+          {items.map((item) =>
+            item.href.startsWith("/") ? (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="rounded-md px-2 py-2 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <a
+                key={item.label}
+                href={item.href}
+                className="rounded-md px-2 py-2 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              >
+                {item.label}
+              </a>
+            ),
+          )}
         </div>
       </div>
     </div>
