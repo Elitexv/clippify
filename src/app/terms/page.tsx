@@ -120,10 +120,10 @@ export default function TermsPage() {
           campaign&apos;s payout don&apos;t apply retroactively to your already-submitted clips.
         </li>
         <li>
-          Video/like counts shown next to a clip (from a YouTube link) are
-          fetched from the relevant platform&apos;s public API and reflect that platform&apos;s
-          data, not Clippifi&apos;s own measurement — we&apos;re not responsible for their
-          accuracy.
+          Video/like counts shown next to a clip (from a YouTube or TikTok link) are fetched from
+          the relevant platform&apos;s public data — for TikTok, via a third-party API, see our{" "}
+          <Link href="/privacy">Privacy Policy</Link> — and reflect that platform&apos;s data, not
+          Clippifi&apos;s own measurement. We&apos;re not responsible for their accuracy.
         </li>
       </ul>
       <p>

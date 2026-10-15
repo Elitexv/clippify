@@ -20,6 +20,7 @@ import { subscribeToActiveCampaigns, type Campaign } from "@/lib/firebase-helper
 import { createClip, subscribeToClipsForUser, uploadClipVideo, type Clip, type ClipStatus } from "@/lib/clips";
 import { getPublicSettings } from "@/lib/platform-settings";
 import { extractYouTubeVideoId, fetchYouTubeStats } from "@/lib/youtube";
+import { fetchTikTokVideoStats, isTikTokLink } from "@/lib/tiktok";
 
 type LinkStats = { title: string; thumbnailUrl: string; viewCount: number; likeCount: number | null };
 
@@ -222,6 +223,7 @@ function SubmitClipModal({
   const [stats, setStats] = useState<LinkStats | null>(null);
   const [fetchingStats, setFetchingStats] = useState(false);
   const [lastCheckedLink, setLastCheckedLink] = useState("");
+  const [tiktokHint, setTiktokHint] = useState("");
 
   useEffect(() => {
     getPublicSettings().then((s) => setYoutubeApiKey(s.youtubeApiKey));
@@ -239,6 +241,20 @@ function SubmitClipModal({
         const result = await fetchYouTubeStats(youtubeId, youtubeApiKey);
         setStats(result);
         if (result && !title.trim()) setTitle(result.title);
+      } finally {
+        setFetchingStats(false);
+      }
+      return;
+    }
+
+    if (isTikTokLink(trimmed)) {
+      setFetchingStats(true);
+      setTiktokHint("");
+      try {
+        const result = await fetchTikTokVideoStats(trimmed);
+        setStats(result);
+        if (result && !title.trim()) setTitle(result.title);
+        if (!result) setTiktokHint("Couldn't find that TikTok video. Double-check the link.");
       } finally {
         setFetchingStats(false);
       }
@@ -386,6 +402,7 @@ function SubmitClipModal({
                         onChange={(e) => {
                           setLink(e.target.value);
                           setStats(null);
+                          setTiktokHint("");
                         }}
                         onBlur={checkLinkForStats}
                         placeholder="https://youtube.com/watch?v=... or any clip link"
@@ -419,12 +436,12 @@ function SubmitClipModal({
                           </div>
                         </div>
                       </div>
+                    ) : tiktokHint ? (
+                      <p className="mt-1.5 text-[11px] text-amber-600 dark:text-yellow-400">{tiktokHint}</p>
                     ) : (
-                      youtubeApiKey && (
-                        <p className="mt-1.5 text-[11px] text-slate-400">
-                          Paste a YouTube link to auto-fetch its view and like counts.
-                        </p>
-                      )
+                      <p className="mt-1.5 text-[11px] text-slate-400">
+                        Paste a YouTube or TikTok link to auto-fetch its view and like counts.
+                      </p>
                     )}
                   </div>
                 ) : (

@@ -32,7 +32,7 @@ export default function PrivacyPage() {
       <ul>
         <li>Clip videos you upload or link, campaign flyers, campaign briefs and budgets.</li>
         <li>
-          View/like counts we fetch on your behalf for a pasted YouTube link.
+          View/like counts we fetch on your behalf for a pasted YouTube or TikTok link.
         </li>
       </ul>
       <h3>Payment and transaction records</h3>
@@ -102,6 +102,18 @@ export default function PrivacyPage() {
           Google Privacy Policy
         </a>
         .
+      </p>
+      <h3>TikTok video stats</h3>
+      <p>
+        When a creator pastes a TikTok link while submitting a clip, Clippifi looks up that
+        video&apos;s publicly available view and like counts through TikAPI, a third-party service
+        — not an official TikTok API. This also doesn&apos;t require logging in to TikTok or
+        granting access to a TikTok account; it&apos;s a lookup of public data about the video
+        itself, and the only thing shared with TikAPI is the video link or ID. See{" "}
+        <a href="https://tikapi.io" target="_blank" rel="noopener noreferrer">
+          TikAPI&apos;s own site
+        </a>{" "}
+        for how it handles data it processes on our behalf.
       </p>
 
       <h2>4. Where your data is stored</h2>
