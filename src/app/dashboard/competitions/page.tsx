@@ -302,6 +302,7 @@ function SubmitClipModal({
         payoutAtSubmission: campaign.payoutPerClip,
         viewCount: stats?.viewCount,
         likeCount: stats?.likeCount ?? undefined,
+        thumbnailUrl: stats?.thumbnailUrl,
       });
       setApprovedInstantly(autoModeration);
       setDone(true);

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Briefcase, ExternalLink } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
+import { Briefcase, Check, CheckCircle2, ChevronDown, ExternalLink, Eye, Heart, Loader2, X, XCircle } from "lucide-react";
 import {
   subscribeToAllCampaigns,
   updateCampaignPayout,
@@ -9,6 +9,7 @@ import {
   type Campaign,
   type CampaignStatus,
 } from "@/lib/firebase-helpers";
+import { setClipStatus, subscribeToClipsForCampaign, type Clip, type ClipStatus } from "@/lib/clips";
 
 const statusOptions: CampaignStatus[] = ["draft", "active", "completed", "cancelled"];
 
@@ -20,11 +21,19 @@ const statusStyle: Record<CampaignStatus, string> = {
   cancelled: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
 };
 
+const clipStatusStyle: Record<ClipStatus, { cls: string; icon: typeof CheckCircle2 }> = {
+  pending: { cls: "bg-amber-100 text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400", icon: Loader2 },
+  approved: { cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400", icon: CheckCircle2 },
+  rejected: { cls: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400", icon: XCircle },
+};
+
 export default function AdminCampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
   const [payoutDrafts, setPayoutDrafts] = useState<Record<string, string>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [entries, setEntries] = useState<Clip[]>([]);
 
   useEffect(() => {
     const unsubscribe = subscribeToAllCampaigns((next) => {
@@ -33,6 +42,24 @@ export default function AdminCampaignsPage() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Only subscribed once a campaign is actually expanded — this page can list every
+  // campaign on the platform, and there's no reason to hold a live clips listener
+  // open for every single one just to show a submission count.
+  useEffect(() => {
+    if (!expandedId) return;
+    const unsubscribe = subscribeToClipsForCampaign(expandedId, setEntries);
+    return () => unsubscribe();
+  }, [expandedId]);
+
+  const resolveClip = async (clipId: string, status: "approved" | "rejected") => {
+    setRowBusy((b) => ({ ...b, [clipId]: true }));
+    try {
+      await setClipStatus(clipId, status);
+    } finally {
+      setRowBusy((b) => ({ ...b, [clipId]: false }));
+    }
+  };
 
   const changeStatus = async (campaign: Campaign, status: CampaignStatus) => {
     if (status === campaign.status) return;
@@ -85,11 +112,13 @@ export default function AdminCampaignsPage() {
                 <th className="px-4 py-3 font-medium">Budget</th>
                 <th className="px-4 py-3 font-medium">Payout per clip</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Submissions</th>
               </tr>
             </thead>
             <tbody>
               {campaigns.map((c) => (
-                <tr key={c.id} className="border-b border-slate-50 last:border-0 dark:border-white/5">
+                <Fragment key={c.id}>
+                <tr className="border-b border-slate-50 last:border-0 dark:border-white/5">
                   <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900 dark:text-white">
                     <div className="flex items-center gap-2">
                       <Briefcase className="h-3.5 w-3.5 shrink-0 text-amber-500 dark:text-yellow-400" />
@@ -140,7 +169,98 @@ export default function AdminCampaignsPage() {
                       ))}
                     </select>
                   </td>
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <button
+                      onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                      className="flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                    >
+                      View
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedId === c.id ? "rotate-180" : ""}`} />
+                    </button>
+                  </td>
                 </tr>
+                {expandedId === c.id && (
+                  <tr className="border-b border-slate-50 bg-slate-50 last:border-0 dark:border-white/5 dark:bg-white/[0.02]">
+                    <td colSpan={5} className="px-4 py-3">
+                      {entries.length === 0 ? (
+                        <p className="py-2 text-xs text-slate-400">No clips submitted to this campaign yet.</p>
+                      ) : (
+                        <div className="flex flex-col gap-1.5">
+                          {entries.map((entry) => {
+                            const style = clipStatusStyle[entry.status];
+                            const StatusIcon = style.icon;
+                            const href = entry.videoUrl || entry.link;
+                            return (
+                              <div
+                                key={entry.id}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-xs dark:bg-[#111]"
+                              >
+                                <div className="flex min-w-0 flex-1 items-center gap-2">
+                                  {href ? (
+                                    <a
+                                      href={href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="min-w-0 truncate font-medium text-slate-700 hover:underline dark:text-slate-200"
+                                    >
+                                      {entry.creatorName} — {entry.title}
+                                    </a>
+                                  ) : (
+                                    <span className="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">
+                                      {entry.creatorName} — {entry.title}
+                                    </span>
+                                  )}
+                                  {(entry.viewCount !== undefined || entry.likeCount !== undefined) && (
+                                    <span className="flex shrink-0 items-center gap-2 text-slate-400">
+                                      {entry.viewCount !== undefined && (
+                                        <span className="flex items-center gap-0.5">
+                                          <Eye className="h-3 w-3" /> {entry.viewCount.toLocaleString()}
+                                        </span>
+                                      )}
+                                      {entry.likeCount !== undefined && (
+                                        <span className="flex items-center gap-0.5">
+                                          <Heart className="h-3 w-3" /> {entry.likeCount.toLocaleString()}
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                                {entry.status === "pending" ? (
+                                  <div className="flex shrink-0 items-center gap-1">
+                                    <button
+                                      onClick={() => resolveClip(entry.id, "approved")}
+                                      disabled={rowBusy[entry.id]}
+                                      aria-label="Approve clip"
+                                      className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white transition-transform hover:scale-110 disabled:opacity-60"
+                                    >
+                                      <Check className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => resolveClip(entry.id, "rejected")}
+                                      disabled={rowBusy[entry.id]}
+                                      aria-label="Reject clip"
+                                      className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-600 transition-transform hover:scale-110 disabled:opacity-60 dark:bg-red-500/10 dark:text-red-400"
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span
+                                    className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${style.cls}`}
+                                  >
+                                    <StatusIcon className="h-3 w-3" />
+                                    {entry.status}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -148,7 +268,8 @@ export default function AdminCampaignsPage() {
       )}
 
       <p className="mt-4 text-xs text-slate-400">
-        Clip submissions are approved or rejected from Admin &gt; Moderation.
+        Click &quot;View&quot; on a campaign to see its submissions, or review every pending clip
+        at once from Admin &gt; Moderation.
       </p>
     </div>
   );

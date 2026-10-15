@@ -1,5 +1,5 @@
 import Script from "next/script";
-import TikTokEmbed from "./TikTokEmbed";
+import TikTokEmbed from "@/components/TikTokEmbed";
 
 const videos = [
   {

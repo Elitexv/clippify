@@ -36,10 +36,12 @@ export type Clip = {
   // and so Earnings/Payouts never need to read other users' campaign documents, which
   // Firestore rules only allow for a campaign's own brand or an admin.
   payoutAtSubmission?: number;
-  // Auto-fetched from the YouTube Data API when `link` is a YouTube URL — see
-  // src/lib/youtube.ts. Absent for non-YouTube links or when no API key is configured.
+  // Auto-fetched from the YouTube Data API (src/lib/youtube.ts) or TikAPI
+  // (src/lib/tiktok.ts) when `link` is a recognized YouTube/TikTok URL. Absent for
+  // other links, uploaded files, or when auto-fetch didn't find a match.
   viewCount?: number;
   likeCount?: number;
+  thumbnailUrl?: string;
   createdAt: Timestamp | null;
 };
 
@@ -63,6 +65,7 @@ export async function createClip({
   payoutAtSubmission,
   viewCount,
   likeCount,
+  thumbnailUrl,
 }: {
   creatorId: string;
   creatorName: string;
@@ -79,6 +82,7 @@ export async function createClip({
   payoutAtSubmission?: number;
   viewCount?: number;
   likeCount?: number;
+  thumbnailUrl?: string;
 }) {
   const docRef = await addDoc(collection(db, "clips"), {
     creatorId,
@@ -92,6 +96,7 @@ export async function createClip({
     ...(payoutAtSubmission !== undefined ? { payoutAtSubmission } : {}),
     ...(viewCount !== undefined ? { viewCount } : {}),
     ...(likeCount !== undefined ? { likeCount } : {}),
+    ...(thumbnailUrl ? { thumbnailUrl } : {}),
     createdAt: serverTimestamp(),
   });
   return docRef.id;

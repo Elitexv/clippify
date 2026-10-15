@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Film, Heart, Search } from "lucide-react";
+import Script from "next/script";
+import { Eye, ExternalLink, Film, Heart, Play, Search, X } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
+import TikTokEmbed from "@/components/TikTokEmbed";
 import { useAuth } from "@/lib/auth/auth-context";
 import { addFavorite, fetchFavoriteIds, removeFavorite, subscribeToApprovedClips, type Clip } from "@/lib/clips";
+import { extractYouTubeVideoId } from "@/lib/youtube";
+import { extractTikTokVideoId } from "@/lib/tiktok";
 
 const categories = ["All", "Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 
@@ -23,6 +27,7 @@ function BrowseClipsContent() {
   const [clips, setClips] = useState<Clip[]>([]);
   const [loading, setLoading] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [playingClip, setPlayingClip] = useState<Clip | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToApprovedClips((next) => {
@@ -133,6 +138,32 @@ function BrowseClipsContent() {
               <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950">
                 {clip.videoUrl ? (
                   <video src={clip.videoUrl} className="h-full w-full object-cover" muted controls />
+                ) : clip.thumbnailUrl && clip.link ? (
+                  <button
+                    onClick={() => setPlayingClip(clip)}
+                    aria-label={`Play ${clip.title}`}
+                    className="group/play relative h-full w-full"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={clip.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover/play:bg-black/40">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-black transition-transform group-hover/play:scale-110">
+                        <Play className="h-4 w-4 fill-black" />
+                      </span>
+                    </span>
+                  </button>
+                ) : clip.link ? (
+                  <a
+                    href={clip.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-white/60 transition-colors hover:text-white"
+                  >
+                    <Film className="h-7 w-7" />
+                    <span className="flex items-center gap-1 text-[11px] font-medium">
+                      Watch clip <ExternalLink className="h-3 w-3" />
+                    </span>
+                  </a>
                 ) : (
                   <Film className="h-8 w-8 text-white/30" />
                 )}
@@ -180,6 +211,53 @@ function BrowseClipsContent() {
           ))}
         </div>
       )}
+
+      {playingClip && <PlayerModal clip={playingClip} onClose={() => setPlayingClip(null)} />}
+      <Script src="https://www.tiktok.com/embed.js" strategy="lazyOnload" />
+    </div>
+  );
+}
+
+function PlayerModal({ clip, onClose }: { clip: Clip; onClose: () => void }) {
+  const youtubeId = clip.link ? extractYouTubeVideoId(clip.link) : null;
+  const tiktokId = clip.link ? extractTikTokVideoId(clip.link) : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`relative w-full overflow-hidden rounded-2xl bg-black ${tiktokId ? "max-w-sm" : "max-w-2xl"}`}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        {youtubeId ? (
+          <div className="aspect-video w-full">
+            <iframe
+              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1`}
+              title={clip.title}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : tiktokId && clip.link ? (
+          <div className="max-h-[80vh] overflow-y-auto">
+            <TikTokEmbed url={clip.link} videoId={tiktokId} author={clip.creatorName} caption={clip.title} />
+          </div>
+        ) : (
+          <div className="flex aspect-video items-center justify-center text-sm text-white/60">
+            Couldn&apos;t load this video.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
