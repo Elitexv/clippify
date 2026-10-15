@@ -166,14 +166,21 @@ export type FavoriteClip = {
   clipId: string;
   title: string;
   creatorName: string;
+  viewCount?: number;
+  likeCount?: number;
   addedAt: Timestamp | null;
 };
 
-export async function addFavorite(userId: string, clip: Pick<Clip, "id" | "title" | "creatorName">) {
+export async function addFavorite(
+  userId: string,
+  clip: Pick<Clip, "id" | "title" | "creatorName" | "viewCount" | "likeCount">,
+) {
   await setDoc(doc(db, "users", userId, "favorites", clip.id), {
     clipId: clip.id,
     title: clip.title,
     creatorName: clip.creatorName,
+    ...(clip.viewCount !== undefined ? { viewCount: clip.viewCount } : {}),
+    ...(clip.likeCount !== undefined ? { likeCount: clip.likeCount } : {}),
     addedAt: serverTimestamp(),
   });
 }

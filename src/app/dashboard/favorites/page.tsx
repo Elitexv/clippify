@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Heart, X } from "lucide-react";
+import { Eye, Heart, X } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import EmptyState from "@/components/dashboard/EmptyState";
@@ -58,6 +58,20 @@ function FavoritesContent() {
               <div className="min-w-0">
                 <p className="truncate font-medium text-slate-900 dark:text-white">{fav.title}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{fav.creatorName}</p>
+                {(fav.viewCount !== undefined || fav.likeCount !== undefined) && (
+                  <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-400">
+                    {fav.viewCount !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" /> {fav.viewCount.toLocaleString()}
+                      </span>
+                    )}
+                    {fav.likeCount !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-3 w-3" /> {fav.likeCount.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => user && removeFavorite(user.id, fav.clipId)}

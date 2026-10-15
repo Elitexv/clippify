@@ -163,12 +163,28 @@ function CreatorCampaignsContent() {
                   )}
 
                   {submission && badge && BadgeIcon ? (
-                    <span
-                      className={`mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg py-2.5 text-center text-sm font-semibold ${badge.cls}`}
-                    >
-                      <BadgeIcon className="h-4 w-4" />
-                      {badge.label}
-                    </span>
+                    <>
+                      <span
+                        className={`mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg py-2.5 text-center text-sm font-semibold ${badge.cls}`}
+                      >
+                        <BadgeIcon className="h-4 w-4" />
+                        {badge.label}
+                      </span>
+                      {(submission.viewCount !== undefined || submission.likeCount !== undefined) && (
+                        <div className="mt-2 flex items-center justify-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                          {submission.viewCount !== undefined && (
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-3.5 w-3.5" /> {submission.viewCount.toLocaleString()} views
+                            </span>
+                          )}
+                          {submission.likeCount !== undefined && (
+                            <span className="flex items-center gap-1">
+                              <Heart className="h-3.5 w-3.5" /> {submission.likeCount.toLocaleString()} likes
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <button
                       onClick={() => setActiveCampaign(campaign)}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, CheckCircle2, ClipboardList, ExternalLink, Loader2, Plus, X, XCircle } from "lucide-react";
+import { Check, CheckCircle2, ClipboardList, ExternalLink, Eye, Heart, Loader2, Plus, X, XCircle } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import EmptyState from "@/components/dashboard/EmptyState";
@@ -216,22 +216,38 @@ function MyCampaignsContent() {
                         return (
                           <div
                             key={entry.id}
-                            className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs dark:bg-white/5"
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs dark:bg-white/5"
                           >
-                            {href ? (
-                              <a
-                                href={href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="min-w-0 flex-1 truncate text-slate-600 hover:underline dark:text-slate-300"
-                              >
-                                {entry.creatorName} — {entry.title}
-                              </a>
-                            ) : (
-                              <span className="min-w-0 flex-1 truncate text-slate-600 dark:text-slate-300">
-                                {entry.creatorName} — {entry.title}
-                              </span>
-                            )}
+                            <div className="flex min-w-0 flex-1 items-center gap-2">
+                              {href ? (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="min-w-0 truncate text-slate-600 hover:underline dark:text-slate-300"
+                                >
+                                  {entry.creatorName} — {entry.title}
+                                </a>
+                              ) : (
+                                <span className="min-w-0 truncate text-slate-600 dark:text-slate-300">
+                                  {entry.creatorName} — {entry.title}
+                                </span>
+                              )}
+                              {(entry.viewCount !== undefined || entry.likeCount !== undefined) && (
+                                <span className="flex shrink-0 items-center gap-2 text-slate-400">
+                                  {entry.viewCount !== undefined && (
+                                    <span className="flex items-center gap-0.5">
+                                      <Eye className="h-3 w-3" /> {entry.viewCount.toLocaleString()}
+                                    </span>
+                                  )}
+                                  {entry.likeCount !== undefined && (
+                                    <span className="flex items-center gap-0.5">
+                                      <Heart className="h-3 w-3" /> {entry.likeCount.toLocaleString()}
+                                    </span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
                             {entry.status === "pending" ? (
                               <div className="flex shrink-0 items-center gap-1">
                                 <button
