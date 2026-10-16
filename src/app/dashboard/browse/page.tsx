@@ -76,20 +76,20 @@ function BrowseClipsContent() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Browse Clips</h1>
+      <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Browse Clips</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         See what clippers have submitted for campaigns across the platform.
       </p>
 
       <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clips, creators, categories..."
-            className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-[#111] dark:text-white"
+            className="w-full rounded-lg border-2 border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-slate-900 focus:outline-none dark:border-white/10 dark:bg-[#111] dark:text-white dark:focus:border-white"
           />
         </div>
       </div>
@@ -99,10 +99,10 @@ function BrowseClipsContent() {
           <button
             key={cat}
             onClick={() => setActive(cat)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            className={`rounded-full border-2 px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 ${
               active === cat
-                ? "bg-gradient-to-r from-yellow-400 to-amber-500 text-black"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+                ? "border-black bg-yellow-400 text-black dark:border-yellow-200 dark:shadow-[2px_2px_0_0_#fde68a]"
+                : "border-slate-200 bg-transparent text-slate-600 hover:border-slate-900 hover:text-slate-900 dark:border-white/10 dark:text-slate-300 dark:hover:border-white dark:hover:text-white"
             }`}
           >
             {cat}
@@ -115,7 +115,7 @@ function BrowseClipsContent() {
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500 dark:border-white/10 dark:border-t-yellow-400" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="mt-10 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center dark:border-white/10 dark:bg-[#111]">
+        <div className="mt-10 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white px-6 py-16 text-center dark:border-white/15 dark:bg-[#111]">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-100 text-black dark:bg-yellow-400/10 dark:text-yellow-400">
             <Film className="h-6 w-6" />
           </span>
@@ -133,7 +133,7 @@ function BrowseClipsContent() {
           {filtered.map((clip) => (
             <div
               key={clip.id}
-              className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm shadow-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-[#111] dark:shadow-none"
+              className="group overflow-hidden rounded-2xl border-2 border-slate-900 bg-white transition-all duration-150 hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] dark:border-white/15 dark:hover:shadow-[4px_4px_0_0_rgba(255,255,255,0.4)]"
             >
               <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950">
                 {clip.videoUrl ? (
@@ -146,9 +146,10 @@ function BrowseClipsContent() {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={clip.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover/play:bg-black/40">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-black transition-transform group-hover/play:scale-110">
-                        <Play className="h-4 w-4 fill-black" />
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/10 transition-colors group-hover/play:from-black/80" />
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-black/40 backdrop-blur transition-transform group-hover/play:scale-110 group-hover/play:bg-yellow-400 group-hover/play:text-black">
+                        <Play className="h-4 w-4 fill-white text-white group-hover/play:fill-black group-hover/play:text-black" />
                       </span>
                     </span>
                   </button>
@@ -167,10 +168,21 @@ function BrowseClipsContent() {
                 ) : (
                   <Film className="h-8 w-8 text-white/30" />
                 )}
+
+                <span className="pointer-events-none absolute left-2 top-2 rounded-md border border-white/20 bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur">
+                  {clip.category}
+                </span>
+
+                {clip.viewCount !== undefined && (
+                  <span className="pointer-events-none absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur">
+                    <Eye className="h-3 w-3" /> {clip.viewCount.toLocaleString()}
+                  </span>
+                )}
+
                 <button
                   onClick={() => toggleFavorite(clip)}
                   aria-label={favoriteIds.has(clip.id) ? "Remove from favorites" : "Add to favorites"}
-                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 backdrop-blur transition-transform hover:scale-110"
+                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/50 backdrop-blur transition-transform hover:scale-110"
                 >
                   <Heart
                     className={`h-3.5 w-3.5 ${favoriteIds.has(clip.id) ? "fill-red-500 text-red-500" : "text-white"}`}
@@ -183,28 +195,16 @@ function BrowseClipsContent() {
                 </p>
                 <div className="mt-0.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                   <span className="truncate">{clip.creatorName}</span>
-                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-white/10 dark:text-slate-400">
-                    {clip.category}
-                  </span>
+                  {clip.likeCount !== undefined && (
+                    <span className="flex shrink-0 items-center gap-1">
+                      <Heart className="h-3 w-3" /> {clip.likeCount.toLocaleString()}
+                    </span>
+                  )}
                 </div>
                 {clip.campaignTitle && (
                   <p className="mt-1 truncate text-[11px] text-amber-600 dark:text-yellow-400">
                     For: {clip.campaignTitle}
                   </p>
-                )}
-                {(clip.viewCount !== undefined || clip.likeCount !== undefined) && (
-                  <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-400">
-                    {clip.viewCount !== undefined && (
-                      <span className="flex items-center gap-1">
-                        <Eye className="h-3 w-3" /> {clip.viewCount.toLocaleString()}
-                      </span>
-                    )}
-                    {clip.likeCount !== undefined && (
-                      <span className="flex items-center gap-1">
-                        <Heart className="h-3 w-3" /> {clip.likeCount.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
                 )}
               </div>
             </div>
@@ -229,12 +229,12 @@ function PlayerModal({ clip, onClose }: { clip: Clip; onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full overflow-hidden rounded-2xl bg-black ${tiktokId ? "max-w-sm" : "max-w-2xl"}`}
+        className={`relative w-full overflow-hidden rounded-2xl border-2 border-white/20 bg-black ${tiktokId ? "max-w-sm" : "max-w-2xl"}`}
       >
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+          className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white hover:bg-yellow-400 hover:text-black"
         >
           <X className="h-4 w-4" />
         </button>
