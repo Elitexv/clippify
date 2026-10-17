@@ -1,7 +1,7 @@
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-export type ProviderId = "stripe" | "flutterwave" | "paystack" | "bank";
+export type ProviderId = "stripe" | "flutterwave" | "paystack" | "bank" | "bachs";
 
 export type ProviderConfig = {
   enabled: boolean;
@@ -34,6 +34,7 @@ export const providerMeta: Record<ProviderId, { name: string; description: strin
   flutterwave: { name: "Flutterwave", description: "Cards, mobile money, and bank transfers via Flutterwave." },
   paystack: { name: "Paystack", description: "Cards and bank transfers via Paystack." },
   bank: { name: "Bank transfer", description: "Manual ACH / wire transfer details." },
+  bachs: { name: "Bachs", description: "Card, mobile money, and stablecoin checkout via Bachs." },
 };
 
 export const providerFieldSchemas: Record<ProviderId, KeyField[]> = {
@@ -56,6 +57,10 @@ export const providerFieldSchemas: Record<ProviderId, KeyField[]> = {
     { key: "accountNumber", label: "Account number", placeholder: "000123456789" },
     { key: "routingNumber", label: "Routing number", placeholder: "021000021" },
   ],
+  // No key fields — Bachs is configured via server environment variables
+  // (BACHS_SECRET_KEY, BACHS_WEBHOOK_SECRET in .env.local), not here. This toggle
+  // only controls whether it's offered at checkout.
+  bachs: [],
 };
 
 // Which key field of each provider is safe to ship to the browser (a "publishable"/
@@ -82,6 +87,7 @@ export const defaultPlatformSettings: PlatformSettings = {
     flutterwave: emptyProvider(),
     paystack: emptyProvider(),
     bank: emptyProvider(),
+    bachs: emptyProvider(),
   },
 };
 
@@ -123,6 +129,7 @@ function normalize(raw: unknown): PlatformSettings {
       flutterwave: { ...emptyProvider(), ...parsed.paymentProviders?.flutterwave },
       paystack: { ...emptyProvider(), ...parsed.paymentProviders?.paystack },
       bank: { ...emptyProvider(), ...parsed.paymentProviders?.bank },
+      bachs: { ...emptyProvider(), ...parsed.paymentProviders?.bachs },
     },
   };
 }
@@ -192,14 +199,15 @@ export function isProviderConnected(providerId: ProviderId, config: ProviderConf
   return providerFieldSchemas[providerId].every((field) => (config.keys[field.key] ?? "").trim().length > 0);
 }
 
-// Providers with a working charge-and-verify flow, offered as a payment option at
-// campaign checkout alongside Bachs (src/app/api/bachs/*, configured separately via
-// server env vars, not these cards — see src/app/dashboard/post-job/page.tsx, which
-// combines both). Every other provider here has no real charge/verification step
-// wired up, so "enabling" one would let a brand post a campaign for free with no
-// payment and no record of it. Add a provider here only once it has a real
-// integration like Paystack's (src/lib/paystack.ts).
-export const PROVIDERS_WITH_REAL_CHECKOUT: ProviderId[] = ["paystack"];
+// Providers with a working charge-and-verify flow — each one's enabled toggle here
+// directly controls whether it's offered at checkout (src/app/dashboard/post-job
+// reads settings.liveProviders directly, no other gating). Every other provider in
+// ProviderId has no real charge/verification step wired up, so adding one here
+// without real integration code would let a brand post a campaign for free with no
+// payment and no record of it. Add a provider only once it has real checkout code
+// like Paystack's (src/lib/paystack.ts), Bachs' (src/app/api/bachs/*), or
+// Flutterwave's (src/app/api/flutterwave/*).
+export const PROVIDERS_WITH_REAL_CHECKOUT: ProviderId[] = ["paystack", "bachs", "flutterwave"];
 
 export function hasRealCheckout(providerId: ProviderId): boolean {
   return PROVIDERS_WITH_REAL_CHECKOUT.includes(providerId);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Banknote, Check, CreditCard, Eye, EyeOff, KeyRound, Landmark, ShieldAlert, Zap } from "lucide-react";
+import { Banknote, Check, CreditCard, Eye, EyeOff, KeyRound, Landmark, ShieldAlert, Wallet, Zap } from "lucide-react";
 import { btnPrimary } from "@/lib/button-styles";
 import {
   defaultPlatformSettings,
@@ -25,6 +25,7 @@ const providerIcon: Record<ProviderId, typeof CreditCard> = {
   flutterwave: Zap,
   paystack: Banknote,
   bank: Landmark,
+  bachs: Wallet,
 };
 
 export default function ManagePaymentsPage() {
@@ -136,6 +137,12 @@ export default function ManagePaymentsPage() {
                         provider yet — it won&apos;t appear as a payment option for brands.
                       </p>
                     )}
+                    {providerFieldSchemas[id].length === 0 && (
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        No keys to configure here — set via server environment variables. This
+                        toggle alone decides whether it&apos;s offered at checkout.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -157,16 +164,18 @@ export default function ManagePaymentsPage() {
                 </button>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {providerFieldSchemas[id].map((field) => (
-                  <KeyInput
-                    key={field.key}
-                    field={field}
-                    value={config.keys[field.key] ?? ""}
-                    onChange={(v) => updateKey(id, field.key, v)}
-                  />
-                ))}
-              </div>
+              {providerFieldSchemas[id].length > 0 && (
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {providerFieldSchemas[id].map((field) => (
+                    <KeyInput
+                      key={field.key}
+                      field={field}
+                      value={config.keys[field.key] ?? ""}
+                      onChange={(v) => updateKey(id, field.key, v)}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           );
         })}
@@ -191,9 +200,9 @@ export default function ManagePaymentsPage() {
       <div className="mt-8 flex items-center gap-2 text-xs text-slate-400">
         <KeyRound className="h-3.5 w-3.5" />
         A provider only appears as a payment option at campaign checkout once it&apos;s
-        connected (all keys filled), enabled here, <em>and</em> has real checkout processing
-        built — right now that&apos;s Paystack. Bachs is also offered at checkout, configured
-        separately via server environment variables (see .env.local), not these cards.
+        connected (all keys filled, where it has any), enabled here, <em>and</em> has real
+        checkout processing built — Bachs, Paystack, and Flutterwave right now. More than one
+        can be enabled at a time; a brand picks between whichever are live when paying.
       </div>
     </div>
   );

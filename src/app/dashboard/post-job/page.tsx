@@ -26,6 +26,7 @@ import {
   getPublicSettings,
   parseCurrency,
   providerMeta,
+  PROVIDERS_WITH_REAL_CHECKOUT,
   type PublicPlatformSettings,
   type ProviderId,
 } from "@/lib/platform-settings";
@@ -34,25 +35,12 @@ const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
-// "bachs" isn't a ProviderId — it's env-configured, not set up through Manage Payments
-// (see src/lib/platform-settings.ts) — so it's always offered alongside whatever
-// Manage Payments providers are actually connected and enabled.
-type PaymentMethod = "bachs" | ProviderId;
-
-const methodIcon: Record<PaymentMethod, typeof CreditCard> = {
+const methodIcon: Record<ProviderId, typeof CreditCard> = {
   bachs: Wallet,
   stripe: CreditCard,
   flutterwave: Zap,
   paystack: Banknote,
   bank: Landmark,
-};
-
-const methodLabel: Record<PaymentMethod, string> = {
-  bachs: "Bachs (card, mobile money, stablecoins)",
-  stripe: providerMeta.stripe.name,
-  flutterwave: providerMeta.flutterwave.name,
-  paystack: providerMeta.paystack.name,
-  bank: providerMeta.bank.name,
 };
 
 type Step = "form" | "payment" | "success";
@@ -83,11 +71,11 @@ function PostCampaignPageContent() {
 
   const [settings, setSettings] = useState<PublicPlatformSettings>(defaultSettings);
   const [settingsLoading, setSettingsLoading] = useState(true);
-  // Bachs first — it's server-verified end to end (see src/app/api/bachs/webhook).
-  // Paystack (or any other Manage Payments provider with real checkout wired up)
-  // comes after as a fallback.
-  const methodOptions: PaymentMethod[] = ["bachs", ...settings.liveProviders];
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  // Which providers are offered is entirely an admin Manage Payments decision now —
+  // see src/lib/platform-settings.ts's getLiveProviders(). No provider is hardcoded
+  // here, so enabling/disabling one is a config change, not a deploy.
+  const methodOptions: ProviderId[] = settings.liveProviders;
+  const [selectedMethod, setSelectedMethod] = useState<ProviderId | null>(null);
   const method = selectedMethod ?? methodOptions[0] ?? null;
   const [paying, setPaying] = useState(false);
 
@@ -143,11 +131,13 @@ function PostCampaignPageContent() {
     setStep("form");
   };
 
-  // Bachs redirects away to a hosted checkout — the campaign stays hidden until its
-  // signed webhook confirms payment (see src/app/api/bachs/webhook/route.ts). Paystack
-  // resolves right here in the tab, so that path creates the campaign directly once
-  // payWithPaystack reports success — there's no server-side confirmation step for it,
-  // unlike Bachs.
+  // Every provider except Paystack is a "redirect to a hosted checkout" flow — the
+  // campaign is created server-side as awaiting_payment and stays hidden from
+  // creators until that provider's signed webhook confirms payment (see
+  // src/app/api/{bachs,flutterwave}/webhook). Paystack resolves right here in the
+  // tab instead, so that branch creates the campaign directly once payWithPaystack
+  // reports success — there's no server-side confirmation step for it, unlike the
+  // others.
   const handlePay = async () => {
     if (!user || !auth.currentUser) {
       setFormError("You must be signed in to post a campaign.");
@@ -166,9 +156,12 @@ function PostCampaignPageContent() {
       // then stuck on "Processing payment..." while a post-payment step silently hangs.
       const flyerUrl = flyer ? await uploadCampaignFlyer(user.id, flyer) : "";
 
-      if (method === "bachs") {
+      if (method !== "paystack") {
+        if (!PROVIDERS_WITH_REAL_CHECKOUT.includes(method)) {
+          throw new Error(`${providerMeta[method].name} isn't wired up for checkout yet.`);
+        }
         const idToken = await auth.currentUser.getIdToken();
-        const res = await fetch("/api/bachs/checkout", {
+        const res = await fetch(`/api/${method}/checkout`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -195,10 +188,6 @@ function PostCampaignPageContent() {
         }
         window.location.assign(data.checkoutUrl);
         return;
-      }
-
-      if (method !== "paystack") {
-        throw new Error(`${providerMeta[method].name} isn't wired up for checkout yet.`);
       }
 
       const publicKey = settings.providerPublicKeys.paystack;
@@ -362,7 +351,7 @@ function PostCampaignPageContent() {
                         className="h-4 w-4 accent-amber-500"
                       />
                       <Icon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      <span className="text-slate-700 dark:text-slate-300">{methodLabel[m]}</span>
+                      <span className="text-slate-700 dark:text-slate-300">{providerMeta[m].name}</span>
                     </label>
                   );
                 })}
