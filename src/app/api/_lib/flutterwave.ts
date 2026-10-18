@@ -48,6 +48,10 @@ export async function createFlutterwaveCheckout({
       redirect_url: successUrl,
       customer: { email: customerEmail, name: customerName },
       customizations: { title },
+      // Without this, Flutterwave falls back to every method enabled in the
+      // dashboard's business settings (which is how PayPal was showing up on an
+      // NGN checkout). Pin it to the methods we actually support.
+      payment_options: "card,account,banktransfer,ussd",
     }),
   });
   const data = await res.json();
