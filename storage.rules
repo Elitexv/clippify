@@ -19,5 +19,16 @@ service firebase.storage {
         && request.resource.size < 200 * 1024 * 1024
         && request.resource.contentType.matches('video/.*');
     }
+
+    // Creator-supplied clip thumbnails — src/lib/clips.ts uploadClipThumbnail(), used
+    // when a creator wants a custom preview image instead of (or because there's no)
+    // auto-fetched one.
+    match /clip-thumbnails/{creatorId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == creatorId
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
   }
 }

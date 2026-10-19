@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Eye, Heart, Link2, Loader2, Upload, X } from "lucide-react";
+import { CheckCircle2, Eye, Heart, ImagePlus, Link2, Loader2, Upload, X } from "lucide-react";
 import { btnPrimary } from "@/lib/button-styles";
 import type { Campaign } from "@/lib/firebase-helpers";
-import { createClip, uploadClipVideo } from "@/lib/clips";
+import { createClip, uploadClipThumbnail, uploadClipVideo } from "@/lib/clips";
 import { createNotification } from "@/lib/notifications";
 import { getPublicSettings } from "@/lib/platform-settings";
 import { extractYouTubeVideoId, fetchYouTubeStats } from "@/lib/youtube";
@@ -45,6 +45,8 @@ export default function SubmitClipModal({
   const [link, setLink] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
   const [category, setCategory] = useState(categories[0]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -101,10 +103,22 @@ export default function SubmitClipModal({
     };
   }, [videoPreviewUrl]);
 
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
+    };
+  }, [thumbnailPreviewUrl]);
+
   const handleFileChange = (file: File | null) => {
     if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
     setVideoFile(file);
     setVideoPreviewUrl(file ? URL.createObjectURL(file) : null);
+  };
+
+  const handleThumbnailChange = (file: File | null) => {
+    if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
+    setThumbnailFile(file);
+    setThumbnailPreviewUrl(file ? URL.createObjectURL(file) : null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,6 +134,9 @@ export default function SubmitClipModal({
     try {
       const { autoModeration } = await getPublicSettings();
       const videoUrl = mode === "file" && videoFile ? await uploadClipVideo(userId, videoFile) : "";
+      // A creator-supplied thumbnail always wins over whatever the link's auto-fetch
+      // came back with (or didn't) — it's the one thing they picked on purpose.
+      const thumbnailUrl = thumbnailFile ? await uploadClipThumbnail(userId, thumbnailFile) : stats?.thumbnailUrl;
       await createClip({
         creatorId: userId,
         creatorName: userName,
@@ -133,7 +150,7 @@ export default function SubmitClipModal({
         payoutAtSubmission: campaign.payoutPerClip,
         viewCount: stats?.viewCount,
         likeCount: stats?.likeCount ?? undefined,
-        thumbnailUrl: stats?.thumbnailUrl,
+        thumbnailUrl,
       });
       createNotification({
         userId: campaign.brandId,
@@ -325,6 +342,42 @@ export default function SubmitClipModal({
                       </label>
                     )}
                   </div>
+                )}
+              </div>
+
+              <div>
+                <label className={labelClass}>Thumbnail image (optional)</label>
+                {thumbnailFile && thumbnailPreviewUrl ? (
+                  <div className="relative mt-1.5 h-28 w-full overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumbnailPreviewUrl} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => handleThumbnailChange(null)}
+                      aria-label="Remove thumbnail"
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center transition-colors hover:border-yellow-400 dark:border-white/15 dark:bg-white/5">
+                    <ImagePlus className="h-5 w-5 text-slate-400" />
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                      Click to upload a thumbnail
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {stats?.thumbnailUrl
+                        ? "Optional — overrides the auto-fetched preview above"
+                        : "PNG or JPG — shown as the preview on Browse Clips"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleThumbnailChange(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
                 )}
               </div>
 

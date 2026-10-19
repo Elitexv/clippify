@@ -170,7 +170,13 @@ function BrowseClipsContent() {
             >
               <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950">
                 {clip.videoUrl ? (
-                  <video src={clip.videoUrl} className="h-full w-full object-cover" muted controls />
+                  <video
+                    src={clip.videoUrl}
+                    poster={clip.thumbnailUrl || undefined}
+                    className="h-full w-full object-cover"
+                    muted
+                    controls
+                  />
                 ) : effectiveThumbnail && clip.link ? (
                   <button
                     onClick={() => setPlayingClip(clip)}

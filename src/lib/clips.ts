@@ -55,6 +55,15 @@ export async function uploadClipVideo(creatorId: string, file: File): Promise<st
   return getDownloadURL(storageRef);
 }
 
+// For a creator-supplied thumbnail image — overrides whatever (if anything) the
+// link's auto-fetched stats came back with. See SubmitClipModal.
+export async function uploadClipThumbnail(creatorId: string, file: File): Promise<string> {
+  const path = `clip-thumbnails/${creatorId}/${Date.now()}-${file.name}`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+}
+
 export async function createClip({
   creatorId,
   creatorName,
