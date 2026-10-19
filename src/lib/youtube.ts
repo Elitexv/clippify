@@ -11,6 +11,15 @@ export function extractYouTubeVideoId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// YouTube serves thumbnails from a predictable, unauthenticated CDN URL — no API key
+// or network round-trip needed before rendering, unlike fetchYouTubeStats below. Used
+// as a fallback on Browse Clips for clips that have a YouTube link but never got a
+// thumbnailUrl captured at submission time (e.g. submitted before the stats key was
+// configured, or the stats fetch failed).
+export function youtubeThumbnailUrl(videoId: string): string {
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+}
+
 export type YouTubeStats = {
   videoId: string;
   title: string;

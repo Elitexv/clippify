@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { Eye, ExternalLink, Film, Heart, Play, Search, X } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import TikTokEmbed from "@/components/TikTokEmbed";
 import { useAuth } from "@/lib/auth/auth-context";
 import { addFavorite, fetchFavoriteIds, removeFavorite, subscribeToApprovedClips, type Clip } from "@/lib/clips";
-import { extractYouTubeVideoId } from "@/lib/youtube";
-import { extractTikTokVideoId } from "@/lib/tiktok";
+import { extractYouTubeVideoId, youtubeThumbnailUrl } from "@/lib/youtube";
+import { extractTikTokVideoId, fetchTikTokVideoStats, isTikTokLink } from "@/lib/tiktok";
 
 const categories = ["All", "Tech", "Sports", "Motivation", "Nature", "Gaming", "Podcast"];
 
@@ -28,6 +28,14 @@ function BrowseClipsContent() {
   const [loading, setLoading] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [playingClip, setPlayingClip] = useState<Clip | null>(null);
+  // Thumbnails fetched on the fly for clips that have a link but never got a
+  // thumbnailUrl captured at submission time (e.g. a TikTok fetch failed back then,
+  // or a YouTube API key wasn't configured yet). Not persisted to Firestore — clip
+  // update rules only allow changing `status`, and this is cheap enough to just
+  // recompute per page load. YouTube doesn't even need this map: its thumbnail URL is
+  // a predictable CDN path, derived inline below instead.
+  const [fetchedThumbnails, setFetchedThumbnails] = useState<Record<string, string>>({});
+  const fetchingThumbnailIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const unsubscribe = subscribeToApprovedClips((next) => {
@@ -36,6 +44,27 @@ function BrowseClipsContent() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const pending = clips.filter(
+      (clip) =>
+        !clip.thumbnailUrl &&
+        clip.link &&
+        isTikTokLink(clip.link) &&
+        !(clip.id in fetchedThumbnails) &&
+        !fetchingThumbnailIds.current.has(clip.id),
+    );
+    pending.forEach((clip) => {
+      fetchingThumbnailIds.current.add(clip.id);
+      fetchTikTokVideoStats(clip.link)
+        .then((result) => {
+          if (result?.thumbnailUrl) {
+            setFetchedThumbnails((prev) => ({ ...prev, [clip.id]: result.thumbnailUrl }));
+          }
+        })
+        .finally(() => fetchingThumbnailIds.current.delete(clip.id));
+    });
+  }, [clips, fetchedThumbnails]);
 
   useEffect(() => {
     if (!user) return;
@@ -130,7 +159,11 @@ function BrowseClipsContent() {
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {filtered.map((clip) => (
+          {filtered.map((clip) => {
+          const youtubeId = clip.link ? extractYouTubeVideoId(clip.link) : null;
+          const effectiveThumbnail =
+            clip.thumbnailUrl || (youtubeId ? youtubeThumbnailUrl(youtubeId) : undefined) || fetchedThumbnails[clip.id];
+          return (
             <div
               key={clip.id}
               className="group overflow-hidden rounded-2xl border-2 border-slate-900 bg-white transition-all duration-150 hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] dark:border-white/15 dark:hover:shadow-[4px_4px_0_0_rgba(255,255,255,0.4)]"
@@ -138,14 +171,14 @@ function BrowseClipsContent() {
               <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950">
                 {clip.videoUrl ? (
                   <video src={clip.videoUrl} className="h-full w-full object-cover" muted controls />
-                ) : clip.thumbnailUrl && clip.link ? (
+                ) : effectiveThumbnail && clip.link ? (
                   <button
                     onClick={() => setPlayingClip(clip)}
                     aria-label={`Play ${clip.title}`}
                     className="group/play relative h-full w-full"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={clip.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                    <img src={effectiveThumbnail} alt="" className="h-full w-full object-cover" />
                     <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/10 transition-colors group-hover/play:from-black/80" />
                     <span className="absolute inset-0 flex items-center justify-center">
                       <span className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-black/40 backdrop-blur transition-transform group-hover/play:scale-110 group-hover/play:bg-yellow-400 group-hover/play:text-black">
@@ -208,7 +241,8 @@ function BrowseClipsContent() {
                 )}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 
