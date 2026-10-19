@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, CheckCircle2, ClipboardList, ExternalLink, Eye, Heart, Loader2, Plus, X, XCircle } from "lucide-react";
+import { ClipboardList, ExternalLink, Plus, Search } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import EmptyState from "@/components/dashboard/EmptyState";
+import BudgetBar from "@/components/dashboard/BudgetBar";
+import ClipApprovalList from "@/components/dashboard/ClipApprovalList";
 import { btnPrimary } from "@/lib/button-styles";
 import {
   subscribeToCampaignsForUser,
@@ -14,9 +16,11 @@ import {
   type Campaign,
   type CampaignStatus,
 } from "@/lib/firebase-helpers";
-import { setClipStatus, subscribeToClipsForCampaign, type Clip, type ClipStatus } from "@/lib/clips";
+import { setClipStatus, subscribeToClipsForCampaign, type Clip } from "@/lib/clips";
 
 const statusOptions: CampaignStatus[] = ["draft", "active", "completed", "cancelled"];
+const filterOptions: Array<CampaignStatus | "all"> = ["all", "draft", "awaiting_payment", "active", "completed", "cancelled"];
+type SortOption = "newest" | "budget-desc" | "budget-asc" | "title";
 
 const statusStyle: Record<CampaignStatus, string> = {
   draft: "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300",
@@ -26,11 +30,8 @@ const statusStyle: Record<CampaignStatus, string> = {
   cancelled: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
 };
 
-const clipStatusStyle: Record<ClipStatus, { cls: string; icon: typeof CheckCircle2 }> = {
-  pending: { cls: "bg-amber-100 text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400", icon: Loader2 },
-  approved: { cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400", icon: CheckCircle2 },
-  rejected: { cls: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400", icon: XCircle },
-};
+const inputClass =
+  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 
 export default function MyCampaignsPage() {
   return (
@@ -46,7 +47,11 @@ function MyCampaignsContent() {
   const [entries, setEntries] = useState<Clip[]>([]);
   const [loading, setLoading] = useState(true);
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
+  const [rowError, setRowError] = useState<Record<string, string>>({});
   const [payoutDrafts, setPayoutDrafts] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<CampaignStatus | "all">("all");
+  const [sort, setSort] = useState<SortOption>("newest");
 
   useEffect(() => {
     if (!user) return;
@@ -72,6 +77,18 @@ function MyCampaignsContent() {
     return () => unsubs.forEach((u) => u());
   }, [campaignIds]);
 
+  const visibleCampaigns = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    let list = campaigns;
+    if (statusFilter !== "all") list = list.filter((c) => c.status === statusFilter);
+    if (term) list = list.filter((c) => c.title.toLowerCase().includes(term));
+    const sorted = [...list];
+    if (sort === "budget-desc") sorted.sort((a, b) => b.budget - a.budget);
+    else if (sort === "budget-asc") sorted.sort((a, b) => a.budget - b.budget);
+    else if (sort === "title") sorted.sort((a, b) => a.title.localeCompare(b.title));
+    return sorted;
+  }, [campaigns, search, statusFilter, sort]);
+
   const changeStatus = async (campaign: Campaign, status: CampaignStatus) => {
     if (status === campaign.status) return;
     setRowBusy((b) => ({ ...b, [campaign.id]: true }));
@@ -95,12 +112,18 @@ function MyCampaignsContent() {
     }
   };
 
-  const resolveClip = async (clipId: string, status: "approved" | "rejected") => {
-    setRowBusy((b) => ({ ...b, [clipId]: true }));
+  const resolveClip = async (clip: Clip, status: "approved" | "rejected") => {
+    setRowBusy((b) => ({ ...b, [clip.id]: true }));
+    setRowError((e) => ({ ...e, [clip.campaignId ?? clip.id]: "" }));
     try {
-      await setClipStatus(clipId, status);
+      await setClipStatus(clip, status);
+    } catch (error) {
+      setRowError((e) => ({
+        ...e,
+        [clip.campaignId ?? clip.id]: error instanceof Error ? error.message : "Couldn't resolve that clip.",
+      }));
     } finally {
-      setRowBusy((b) => ({ ...b, [clipId]: false }));
+      setRowBusy((b) => ({ ...b, [clip.id]: false }));
     }
   };
 
@@ -122,6 +145,37 @@ function MyCampaignsContent() {
         </Link>
       </div>
 
+      {campaigns.length > 0 && (
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search your campaigns…"
+              className={`${inputClass} pl-10`}
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as CampaignStatus | "all")}
+            className={`${inputClass} sm:w-40`}
+          >
+            {filterOptions.map((s) => (
+              <option key={s} value={s} className="capitalize">
+                {s === "all" ? "All statuses" : s.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className={`${inputClass} sm:w-44`}>
+            <option value="newest">Newest first</option>
+            <option value="budget-desc">Budget: high to low</option>
+            <option value="budget-asc">Budget: low to high</option>
+            <option value="title">Title A-Z</option>
+          </select>
+        </div>
+      )}
+
       {loading ? (
         <div className="mt-6 flex items-center justify-center py-16">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-amber-500 dark:border-white/10 dark:border-t-yellow-400" />
@@ -134,26 +188,34 @@ function MyCampaignsContent() {
             text="Once you post a campaign, it'll show up here with its status and details."
           />
         </div>
+      ) : visibleCampaigns.length === 0 ? (
+        <div className="mt-6">
+          <EmptyState icon={Search} title="No matching campaigns" text="Try a different search or filter." />
+        </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {campaigns.map((c) => (
+          {visibleCampaigns.map((c) => (
             <div
               key={c.id}
               className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm shadow-slate-100 dark:border-white/10 dark:bg-[#111] dark:shadow-none"
             >
-              {c.flyerUrl ? (
-                <div className="relative h-36 w-full bg-slate-100 dark:bg-white/5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.flyerUrl} alt="" className="h-full w-full object-cover" />
-                </div>
-              ) : (
-                <div className="flex h-36 w-full items-center justify-center bg-slate-100 dark:bg-white/5">
-                  <ClipboardList className="h-8 w-8 text-slate-300 dark:text-slate-600" />
-                </div>
-              )}
+              <Link href={`/dashboard/campaigns/${c.id}`}>
+                {c.flyerUrl ? (
+                  <div className="relative h-36 w-full bg-slate-100 dark:bg-white/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.flyerUrl} alt="" className="h-full w-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="flex h-36 w-full items-center justify-center bg-slate-100 dark:bg-white/5">
+                    <ClipboardList className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+                  </div>
+                )}
+              </Link>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="font-semibold text-slate-900 dark:text-white">{c.title}</p>
+                  <Link href={`/dashboard/campaigns/${c.id}`} className="hover:underline">
+                    <p className="font-semibold text-slate-900 dark:text-white">{c.title}</p>
+                  </Link>
                   <select
                     value={c.status}
                     onChange={(e) => changeStatus(c, e.target.value as CampaignStatus)}
@@ -179,12 +241,9 @@ function MyCampaignsContent() {
                   <span className="max-w-[220px] truncate">{c.channelLink}</span>
                   <ExternalLink className="h-3 w-3 shrink-0" />
                 </a>
-                <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold text-amber-600 dark:text-yellow-400">
-                    ₦{c.budget.toFixed(2)} budget
-                  </span>
-                  {c.deadline && <span>{c.deadline}</span>}
-                </div>
+
+                <BudgetBar campaign={c} className="mt-3" />
+                {c.deadline && <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{c.deadline}</p>}
 
                 <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs dark:border-white/10">
                   <span className="text-slate-500 dark:text-slate-400">Payout per approved clip</span>
@@ -209,75 +268,12 @@ function MyCampaignsContent() {
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                         {clipEntries.length} {clipEntries.length === 1 ? "clip" : "clips"} submitted
                       </p>
-                      {clipEntries.map((entry) => {
-                        const style = clipStatusStyle[entry.status];
-                        const StatusIcon = style.icon;
-                        const href = entry.videoUrl || entry.link;
-                        return (
-                          <div
-                            key={entry.id}
-                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs dark:bg-white/5"
-                          >
-                            <div className="flex min-w-0 flex-1 items-center gap-2">
-                              {href ? (
-                                <a
-                                  href={href}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="min-w-0 truncate text-slate-600 hover:underline dark:text-slate-300"
-                                >
-                                  {entry.creatorName} — {entry.title}
-                                </a>
-                              ) : (
-                                <span className="min-w-0 truncate text-slate-600 dark:text-slate-300">
-                                  {entry.creatorName} — {entry.title}
-                                </span>
-                              )}
-                              {(entry.viewCount !== undefined || entry.likeCount !== undefined) && (
-                                <span className="flex shrink-0 items-center gap-2 text-slate-400">
-                                  {entry.viewCount !== undefined && (
-                                    <span className="flex items-center gap-0.5">
-                                      <Eye className="h-3 w-3" /> {entry.viewCount.toLocaleString()}
-                                    </span>
-                                  )}
-                                  {entry.likeCount !== undefined && (
-                                    <span className="flex items-center gap-0.5">
-                                      <Heart className="h-3 w-3" /> {entry.likeCount.toLocaleString()}
-                                    </span>
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                            {entry.status === "pending" ? (
-                              <div className="flex shrink-0 items-center gap-1">
-                                <button
-                                  onClick={() => resolveClip(entry.id, "approved")}
-                                  disabled={rowBusy[entry.id]}
-                                  aria-label="Approve clip"
-                                  className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white transition-transform hover:scale-110 disabled:opacity-60"
-                                >
-                                  <Check className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => resolveClip(entry.id, "rejected")}
-                                  disabled={rowBusy[entry.id]}
-                                  aria-label="Reject clip"
-                                  className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-600 transition-transform hover:scale-110 disabled:opacity-60 dark:bg-red-500/10 dark:text-red-400"
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            ) : (
-                              <span
-                                className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${style.cls}`}
-                              >
-                                <StatusIcon className="h-3 w-3" />
-                                {entry.status}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
+                      <ClipApprovalList
+                        clips={clipEntries}
+                        busy={rowBusy}
+                        error={rowError[c.id]}
+                        onResolve={resolveClip}
+                      />
                     </div>
                   );
                 })()}

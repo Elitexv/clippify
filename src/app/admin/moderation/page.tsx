@@ -9,6 +9,7 @@ export default function ModerationPage() {
   const [loading, setLoading] = useState(true);
   const [resolved, setResolved] = useState<{ title: string; action: "Approved" | "Rejected" }[]>([]);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     const unsubscribe = subscribeToPendingClips((next) => {
@@ -20,9 +21,12 @@ export default function ModerationPage() {
 
   const resolve = async (clip: Clip, action: "Approved" | "Rejected") => {
     setBusy((b) => ({ ...b, [clip.id]: true }));
+    setActionError("");
     try {
-      await setClipStatus(clip.id, action === "Approved" ? "approved" : "rejected");
+      await setClipStatus(clip, action === "Approved" ? "approved" : "rejected");
       setResolved((prev) => [{ title: clip.title, action }, ...prev].slice(0, 5));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Couldn't resolve that clip. Please try again.");
     } finally {
       setBusy((b) => ({ ...b, [clip.id]: false }));
     }
@@ -34,6 +38,12 @@ export default function ModerationPage() {
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Review clips submitted by creators before they go live.
       </p>
+
+      {actionError && (
+        <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">
+          {actionError}
+        </p>
+      )}
 
       {loading ? (
         <div className="mt-6 flex items-center justify-center py-16">

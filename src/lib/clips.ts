@@ -7,6 +7,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -15,6 +16,8 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
+import type { Campaign } from "@/lib/firebase-helpers";
+import { createNotification } from "@/lib/notifications";
 
 export type ClipStatus = "pending" | "approved" | "rejected";
 
@@ -158,8 +161,78 @@ export function subscribeToClipsForCampaign(campaignId: string, callback: (clips
   );
 }
 
-export async function setClipStatus(clipId: string, status: ClipStatus) {
-  await updateDoc(doc(db, "clips", clipId), { status });
+// Approving a clip tied to a campaign has to check and debit that campaign's
+// remaining budget atomically — two brands/admins approving clips on the same
+// campaign at the same moment must not both succeed past the budget. Rejecting, or
+// resolving a clip with no campaignId, never touches budget, so those stay a plain
+// update. Notifies the creator either way (fire-and-forget — a failed notification
+// write shouldn't block the moderation action itself).
+export async function setClipStatus(clip: Clip, status: ClipStatus) {
+  if (status !== "approved" || !clip.campaignId) {
+    await updateDoc(doc(db, "clips", clip.id), { status });
+    notifyClipResolved(clip, status);
+    return;
+  }
+
+  const campaignRef = doc(db, "campaigns", clip.campaignId);
+  const clipRef = doc(db, "clips", clip.id);
+  const payout = clip.payoutAtSubmission ?? 0;
+  // A plain `let` reassigned only inside the transaction's callback defeats TS's
+  // control-flow narrowing below (it only sees the `= null` at declaration) — a boxed
+  // object sidesteps that since it's a property read, not a re-narrowed identifier.
+  const exhausted: { value: { brandId: string; title: string } | null } = { value: null };
+
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(campaignRef);
+    if (!snap.exists()) throw new Error("This campaign no longer exists.");
+    const campaign = snap.data() as Campaign;
+    const spent = campaign.spent ?? 0;
+    const remaining = campaign.budget - spent;
+    if (payout > remaining) {
+      throw new Error(
+        `Not enough budget left on "${campaign.title}" to approve this clip — ₦${remaining.toFixed(2)} remaining, ₦${payout.toFixed(2)} needed.`,
+      );
+    }
+    const newSpent = spent + payout;
+    const budgetUsedUp = newSpent >= campaign.budget;
+    tx.update(clipRef, { status });
+    tx.update(campaignRef, {
+      spent: newSpent,
+      // Budget fully used: stop the campaign from taking further submissions/approvals
+      // rather than relying on someone noticing and flipping the status by hand.
+      ...(budgetUsedUp ? { status: "completed" } : {}),
+    });
+    if (budgetUsedUp) exhausted.value = { brandId: campaign.brandId, title: campaign.title };
+  });
+  notifyClipResolved(clip, status);
+  if (exhausted.value) {
+    createNotification({
+      userId: exhausted.value.brandId,
+      type: "budget_exhausted",
+      title: "Campaign budget used up",
+      body: `"${exhausted.value.title}" has paid out its full budget and is now marked completed.`,
+      link: `/dashboard/campaigns/${clip.campaignId}`,
+      campaignId: clip.campaignId,
+    }).catch((error) => console.error("Failed to create budget-exhausted notification:", error));
+  }
+}
+
+function notifyClipResolved(clip: Clip, status: ClipStatus) {
+  if (!clip.campaignId || status === "pending") return;
+  const approved = status === "approved";
+  createNotification({
+    userId: clip.creatorId,
+    type: approved ? "clip_approved" : "clip_rejected",
+    title: approved ? "Clip approved" : "Clip rejected",
+    body: approved
+      ? `Your clip "${clip.title}" for "${clip.campaignTitle}" was approved${
+          clip.payoutAtSubmission ? ` — ₦${clip.payoutAtSubmission.toFixed(2)} added to your earnings.` : "."
+        }`
+      : `Your clip "${clip.title}" for "${clip.campaignTitle}" wasn't approved this time.`,
+    link: approved ? "/dashboard/earnings" : `/dashboard/competitions/${clip.campaignId}`,
+    campaignId: clip.campaignId,
+    clipId: clip.id,
+  }).catch((error) => console.error("Failed to create clip-resolved notification:", error));
 }
 
 export type FavoriteClip = {

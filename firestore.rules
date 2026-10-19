@@ -114,6 +114,42 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // --- notifications ---
+    // One doc per notification, recipient in `userId`. Written by whoever's action
+    // triggered it (a creator submitting a clip notifies the brand; a brand/admin
+    // resolving a clip notifies the creator) rather than the recipient themselves, so
+    // create has to verify the write actually corresponds to a real action on a real
+    // campaign/clip instead of trusting the client's claimed userId/type outright.
+    match /notifications/{notificationId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow update: if onlyChanged(['read']) && isOwner(resource.data.userId);
+      allow delete: if false;
+
+      allow create: if isSignedIn() && (
+        isAdmin()
+        || (
+          // A creator notifying the brand that they submitted a clip to one of the
+          // brand's own campaigns.
+          request.resource.data.type == 'clip_submitted'
+          && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.brandId == request.resource.data.userId
+        )
+        || (
+          // The brand notifying a creator that their clip to one of the brand's own
+          // campaigns was approved/rejected (admin doing the same is covered above).
+          (request.resource.data.type == 'clip_approved' || request.resource.data.type == 'clip_rejected')
+          && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.brandId == request.auth.uid
+          && get(/databases/$(database)/documents/clips/$(request.resource.data.clipId)).data.creatorId == request.resource.data.userId
+        )
+        || (
+          // The brand notifying themselves that one of their own campaigns ran out of
+          // budget.
+          request.resource.data.type == 'budget_exhausted'
+          && request.resource.data.userId == request.auth.uid
+          && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.brandId == request.auth.uid
+        )
+      );
+    }
+
     // --- platform settings ---
     // Full config, including payment-provider secret keys — admin only,
     // never readable by a regular signed-in user.

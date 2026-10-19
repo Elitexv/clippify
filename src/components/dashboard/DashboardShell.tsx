@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/lib/auth/auth-context";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
+import NotificationBell from "@/components/dashboard/NotificationBell";
 import { btnPrimary } from "@/lib/button-styles";
 import {
   accountCreateItems,
@@ -151,6 +152,7 @@ export default function DashboardShell({
             )}
 
             <ThemeToggle />
+            <NotificationBell />
 
             <div className="relative">
               <button

@@ -1,7 +1,9 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
-import { Briefcase, Check, CheckCircle2, ChevronDown, ExternalLink, Eye, Heart, Loader2, X, XCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Briefcase, ChevronRight, ExternalLink, Search } from "lucide-react";
+import BudgetBar from "@/components/dashboard/BudgetBar";
 import {
   subscribeToAllCampaigns,
   updateCampaignPayout,
@@ -9,9 +11,10 @@ import {
   type Campaign,
   type CampaignStatus,
 } from "@/lib/firebase-helpers";
-import { setClipStatus, subscribeToClipsForCampaign, type Clip, type ClipStatus } from "@/lib/clips";
 
 const statusOptions: CampaignStatus[] = ["draft", "active", "completed", "cancelled"];
+const filterOptions: Array<CampaignStatus | "all"> = ["all", "draft", "awaiting_payment", "active", "completed", "cancelled"];
+type SortOption = "newest" | "budget-desc" | "budget-asc" | "title";
 
 const statusStyle: Record<CampaignStatus, string> = {
   draft: "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300",
@@ -21,19 +24,17 @@ const statusStyle: Record<CampaignStatus, string> = {
   cancelled: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
 };
 
-const clipStatusStyle: Record<ClipStatus, { cls: string; icon: typeof CheckCircle2 }> = {
-  pending: { cls: "bg-amber-100 text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400", icon: Loader2 },
-  approved: { cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400", icon: CheckCircle2 },
-  rejected: { cls: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400", icon: XCircle },
-};
+const inputClass =
+  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 
 export default function AdminCampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
   const [payoutDrafts, setPayoutDrafts] = useState<Record<string, string>>({});
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [entries, setEntries] = useState<Clip[]>([]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<CampaignStatus | "all">("all");
+  const [sort, setSort] = useState<SortOption>("newest");
 
   useEffect(() => {
     const unsubscribe = subscribeToAllCampaigns((next) => {
@@ -42,24 +43,6 @@ export default function AdminCampaignsPage() {
     });
     return () => unsubscribe();
   }, []);
-
-  // Only subscribed once a campaign is actually expanded — this page can list every
-  // campaign on the platform, and there's no reason to hold a live clips listener
-  // open for every single one just to show a submission count.
-  useEffect(() => {
-    if (!expandedId) return;
-    const unsubscribe = subscribeToClipsForCampaign(expandedId, setEntries);
-    return () => unsubscribe();
-  }, [expandedId]);
-
-  const resolveClip = async (clipId: string, status: "approved" | "rejected") => {
-    setRowBusy((b) => ({ ...b, [clipId]: true }));
-    try {
-      await setClipStatus(clipId, status);
-    } finally {
-      setRowBusy((b) => ({ ...b, [clipId]: false }));
-    }
-  };
 
   const changeStatus = async (campaign: Campaign, status: CampaignStatus) => {
     if (status === campaign.status) return;
@@ -84,12 +67,59 @@ export default function AdminCampaignsPage() {
     }
   };
 
+  const visibleCampaigns = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    let list = campaigns;
+    if (statusFilter !== "all") list = list.filter((c) => c.status === statusFilter);
+    if (term) {
+      list = list.filter(
+        (c) => c.title.toLowerCase().includes(term) || c.brandName?.toLowerCase().includes(term),
+      );
+    }
+    const sorted = [...list];
+    if (sort === "budget-desc") sorted.sort((a, b) => b.budget - a.budget);
+    else if (sort === "budget-asc") sorted.sort((a, b) => a.budget - b.budget);
+    else if (sort === "title") sorted.sort((a, b) => a.title.localeCompare(b.title));
+    return sorted;
+  }, [campaigns, search, statusFilter, sort]);
+
   return (
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Campaigns</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Every campaign posted by every brand, across the platform.
       </p>
+
+      {campaigns.length > 0 && (
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by campaign or brand…"
+              className={`${inputClass} pl-10`}
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as CampaignStatus | "all")}
+            className={`${inputClass} sm:w-40`}
+          >
+            {filterOptions.map((s) => (
+              <option key={s} value={s}>
+                {s === "all" ? "All statuses" : s.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortOption)} className={`${inputClass} sm:w-44`}>
+            <option value="newest">Newest first</option>
+            <option value="budget-desc">Budget: high to low</option>
+            <option value="budget-asc">Budget: low to high</option>
+            <option value="title">Title A-Z</option>
+          </select>
+        </div>
+      )}
 
       {loading ? (
         <div className="mt-6 flex items-center justify-center py-16">
@@ -102,6 +132,10 @@ export default function AdminCampaignsPage() {
           </span>
           <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No campaigns have been posted yet.</p>
         </div>
+      ) : visibleCampaigns.length === 0 ? (
+        <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center dark:border-white/10 dark:bg-[#111]">
+          <p className="text-sm text-slate-500 dark:text-slate-400">No campaigns match your search or filter.</p>
+        </div>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-100 bg-white dark:border-white/10 dark:bg-[#111]">
           <table className="w-full text-left text-sm">
@@ -110,20 +144,19 @@ export default function AdminCampaignsPage() {
                 <th className="px-4 py-3 font-medium">Campaign</th>
                 <th className="hidden px-4 py-3 font-medium sm:table-cell">Brand</th>
                 <th className="px-4 py-3 font-medium">Budget</th>
-                <th className="px-4 py-3 font-medium">Payout per clip</th>
+                <th className="hidden px-4 py-3 font-medium md:table-cell">Payout per clip</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Submissions</th>
+                <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
             <tbody>
-              {campaigns.map((c) => (
-                <Fragment key={c.id}>
-                <tr className="border-b border-slate-50 last:border-0 dark:border-white/5">
+              {visibleCampaigns.map((c) => (
+                <tr key={c.id} className="border-b border-slate-50 last:border-0 dark:border-white/5">
                   <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900 dark:text-white">
-                    <div className="flex items-center gap-2">
+                    <Link href={`/admin/campaigns/${c.id}`} className="flex items-center gap-2 hover:underline">
                       <Briefcase className="h-3.5 w-3.5 shrink-0 text-amber-500 dark:text-yellow-400" />
                       {c.title}
-                    </div>
+                    </Link>
                     {c.channelLink && (
                       <a
                         href={c.channelLink}
@@ -139,10 +172,10 @@ export default function AdminCampaignsPage() {
                   <td className="hidden whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400 sm:table-cell">
                     {c.brandName}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 font-semibold text-amber-600 dark:text-yellow-400">
-                    ₦{c.budget.toFixed(2)}
-                  </td>
                   <td className="px-4 py-3">
+                    <BudgetBar campaign={c} className="w-40" />
+                  </td>
+                  <td className="hidden px-4 py-3 md:table-cell">
                     <input
                       value={payoutDrafts[c.id] ?? String(c.payoutPerClip)}
                       onChange={(e) => setPayoutDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
@@ -169,98 +202,16 @@ export default function AdminCampaignsPage() {
                       ))}
                     </select>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <button
-                      onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
-                      className="flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <Link
+                      href={`/admin/campaigns/${c.id}`}
+                      className="inline-flex items-center gap-0.5 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                     >
                       View
-                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedId === c.id ? "rotate-180" : ""}`} />
-                    </button>
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Link>
                   </td>
                 </tr>
-                {expandedId === c.id && (
-                  <tr className="border-b border-slate-50 bg-slate-50 last:border-0 dark:border-white/5 dark:bg-white/[0.02]">
-                    <td colSpan={5} className="px-4 py-3">
-                      {entries.length === 0 ? (
-                        <p className="py-2 text-xs text-slate-400">No clips submitted to this campaign yet.</p>
-                      ) : (
-                        <div className="flex flex-col gap-1.5">
-                          {entries.map((entry) => {
-                            const style = clipStatusStyle[entry.status];
-                            const StatusIcon = style.icon;
-                            const href = entry.videoUrl || entry.link;
-                            return (
-                              <div
-                                key={entry.id}
-                                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-xs dark:bg-[#111]"
-                              >
-                                <div className="flex min-w-0 flex-1 items-center gap-2">
-                                  {href ? (
-                                    <a
-                                      href={href}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="min-w-0 truncate font-medium text-slate-700 hover:underline dark:text-slate-200"
-                                    >
-                                      {entry.creatorName} — {entry.title}
-                                    </a>
-                                  ) : (
-                                    <span className="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">
-                                      {entry.creatorName} — {entry.title}
-                                    </span>
-                                  )}
-                                  {(entry.viewCount !== undefined || entry.likeCount !== undefined) && (
-                                    <span className="flex shrink-0 items-center gap-2 text-slate-400">
-                                      {entry.viewCount !== undefined && (
-                                        <span className="flex items-center gap-0.5">
-                                          <Eye className="h-3 w-3" /> {entry.viewCount.toLocaleString()}
-                                        </span>
-                                      )}
-                                      {entry.likeCount !== undefined && (
-                                        <span className="flex items-center gap-0.5">
-                                          <Heart className="h-3 w-3" /> {entry.likeCount.toLocaleString()}
-                                        </span>
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
-                                {entry.status === "pending" ? (
-                                  <div className="flex shrink-0 items-center gap-1">
-                                    <button
-                                      onClick={() => resolveClip(entry.id, "approved")}
-                                      disabled={rowBusy[entry.id]}
-                                      aria-label="Approve clip"
-                                      className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white transition-transform hover:scale-110 disabled:opacity-60"
-                                    >
-                                      <Check className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => resolveClip(entry.id, "rejected")}
-                                      disabled={rowBusy[entry.id]}
-                                      aria-label="Reject clip"
-                                      className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-600 transition-transform hover:scale-110 disabled:opacity-60 dark:bg-red-500/10 dark:text-red-400"
-                                    >
-                                      <X className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span
-                                    className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${style.cls}`}
-                                  >
-                                    <StatusIcon className="h-3 w-3" />
-                                    {entry.status}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )}
-                </Fragment>
               ))}
             </tbody>
           </table>
@@ -268,8 +219,8 @@ export default function AdminCampaignsPage() {
       )}
 
       <p className="mt-4 text-xs text-slate-400">
-        Click &quot;View&quot; on a campaign to see its submissions, or review every pending clip
-        at once from Admin &gt; Moderation.
+        Click &quot;View&quot; on a campaign to see its full brief, edit its details, or review its
+        submissions — or review every pending clip at once from Admin &gt; Moderation.
       </p>
     </div>
   );

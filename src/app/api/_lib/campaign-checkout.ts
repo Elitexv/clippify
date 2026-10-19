@@ -76,6 +76,7 @@ export async function createPendingCampaign(
     flyerUrl,
     status: "awaiting_payment",
     payoutPerClip: 0,
+    spent: 0,
     amountDue: total,
     paymentProvider: provider,
     createdAt: FieldValue.serverTimestamp(),

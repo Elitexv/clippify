@@ -371,10 +371,24 @@ export type Campaign = {
   // approved — see clips.ts (Clip.campaignId) and Earnings, which sums this across a
   // creator's own approved campaign clips.
   payoutPerClip: number;
+  // Running total of payoutAtSubmission across every approved clip for this campaign —
+  // kept up to date transactionally in clips.ts's setClipStatus() so it can never drift
+  // from the clips it's summing, and so approving a clip can check remaining budget
+  // atomically instead of racing a client-side read. Optional because campaigns created
+  // before this field existed don't have it — always read via campaignSpend() below,
+  // never c.spent directly.
+  spent?: number;
   paymentProvider?: string;
   paymentReference?: string;
   createdAt: Timestamp | null;
 };
+
+export function campaignSpend(campaign: Campaign) {
+  const spent = campaign.spent ?? 0;
+  const remaining = Math.max(campaign.budget - spent, 0);
+  const pct = campaign.budget > 0 ? Math.min((spent / campaign.budget) * 100, 100) : 0;
+  return { spent, remaining, pct };
+}
 
 export async function createCampaign({
   brandId,
@@ -414,6 +428,7 @@ export async function createCampaign({
     flyerUrl: flyerUrl ?? "",
     status,
     payoutPerClip,
+    spent: 0,
     ...(paymentProvider ? { paymentProvider } : {}),
     ...(paymentReference ? { paymentReference } : {}),
     createdAt: serverTimestamp(),
@@ -428,6 +443,29 @@ export async function updateCampaignStatus(campaignId: string, status: CampaignS
 
 export async function updateCampaignPayout(campaignId: string, payoutPerClip: number) {
   await updateDoc(doc(db, "campaigns", campaignId), { payoutPerClip });
+}
+
+// Editable after posting: everything except budget/flyer, which were already paid for
+// and shown to creators at checkout time — changing them after the fact would be
+// misleading, so the detail/edit pages (brand + admin) only ever touch these fields.
+export async function updateCampaignDetails(
+  campaignId: string,
+  data: Partial<Pick<Campaign, "title" | "brief" | "deadline" | "channelLink">>,
+) {
+  await updateDoc(doc(db, "campaigns", campaignId), data);
+}
+
+// For a campaign detail page (brand, creator, or admin) — single-doc listener so each
+// role's detail route can read one campaign without pulling the whole collection.
+export function subscribeToCampaign(campaignId: string, callback: (campaign: Campaign | null) => void) {
+  return onSnapshot(
+    doc(db, "campaigns", campaignId),
+    (snap) => callback(snap.exists() ? ({ id: snap.id, ...snap.data() } as Campaign) : null),
+    (error) => {
+      console.error("Campaign listener error:", error);
+      callback(null);
+    },
+  );
 }
 
 // Admin-wide view across every brand's campaigns (see /admin/campaigns).
