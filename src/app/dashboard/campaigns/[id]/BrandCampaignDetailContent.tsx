@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, ClipboardList, ExternalLink, Loader2, Pencil } from "lucide-react";
 import EmptyState from "@/components/dashboard/EmptyState";
 import BudgetBar from "@/components/dashboard/BudgetBar";
-import ClipApprovalList from "@/components/dashboard/ClipApprovalList";
+import CampaignParticipants from "@/components/dashboard/CampaignParticipants";
 import { btnPrimary, btnSecondary } from "@/lib/button-styles";
 import {
   subscribeToCampaign,
@@ -239,13 +239,13 @@ export default function BrandCampaignDetailContent() {
 
           <div className="mt-6 border-t border-slate-100 pt-4 dark:border-white/10">
             <p className="text-sm font-semibold text-slate-900 dark:text-white">
-              {clips.length} {clips.length === 1 ? "clip" : "clips"} submitted
+              {clips.length} {clips.length === 1 ? "participant" : "participants"}
             </p>
             <div className="mt-3">
               {clips.length === 0 ? (
-                <p className="text-sm text-slate-400">No clips submitted to this campaign yet.</p>
+                <p className="text-sm text-slate-400">No one has submitted a clip to this campaign yet.</p>
               ) : (
-                <ClipApprovalList clips={clips} busy={rowBusy} error={clipError} onResolve={resolveClip} />
+                <CampaignParticipants clips={clips} busy={rowBusy} error={clipError} onResolve={resolveClip} />
               )}
             </div>
           </div>
