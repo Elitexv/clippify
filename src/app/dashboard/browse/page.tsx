@@ -35,6 +35,10 @@ function BrowseClipsContent() {
   // recompute per page load. YouTube doesn't even need this map: its thumbnail URL is
   // a predictable CDN path, derived inline below instead.
   const [fetchedThumbnails, setFetchedThumbnails] = useState<Record<string, string>>({});
+  // Clips we've already attempted (successfully or not) during this page load, so a
+  // permanently-failing fetch (private/deleted video, TikAPI error) doesn't get retried
+  // on every `clips` snapshot update for as long as the page stays open.
+  const attemptedThumbnailIds = useRef<Set<string>>(new Set());
   const fetchingThumbnailIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -51,7 +55,7 @@ function BrowseClipsContent() {
         !clip.thumbnailUrl &&
         clip.link &&
         isTikTokLink(clip.link) &&
-        !(clip.id in fetchedThumbnails) &&
+        !attemptedThumbnailIds.current.has(clip.id) &&
         !fetchingThumbnailIds.current.has(clip.id),
     );
     pending.forEach((clip) => {
@@ -62,9 +66,12 @@ function BrowseClipsContent() {
             setFetchedThumbnails((prev) => ({ ...prev, [clip.id]: result.thumbnailUrl }));
           }
         })
-        .finally(() => fetchingThumbnailIds.current.delete(clip.id));
+        .finally(() => {
+          attemptedThumbnailIds.current.add(clip.id);
+          fetchingThumbnailIds.current.delete(clip.id);
+        });
     });
-  }, [clips, fetchedThumbnails]);
+  }, [clips]);
 
   useEffect(() => {
     if (!user) return;

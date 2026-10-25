@@ -137,7 +137,7 @@ export default function SubmitClipModal({
       // A creator-supplied thumbnail always wins over whatever the link's auto-fetch
       // came back with (or didn't) — it's the one thing they picked on purpose.
       const thumbnailUrl = thumbnailFile ? await uploadClipThumbnail(userId, thumbnailFile) : stats?.thumbnailUrl;
-      await createClip({
+      const clipId = await createClip({
         creatorId: userId,
         creatorName: userName,
         title: title.trim(),
@@ -159,6 +159,10 @@ export default function SubmitClipModal({
         body: `${userName} submitted a clip to "${campaign.title}".`,
         link: `/dashboard/campaigns/${campaign.id}`,
         campaignId: campaign.id,
+        // Lets the security rule verify this notification corresponds to a clip the
+        // requesting user actually just created, instead of trusting the claimed
+        // userId/campaignId alone (see firestore.rules).
+        clipId,
       }).catch((err) => console.error("Failed to create clip-submitted notification:", err));
       setApprovedInstantly(autoModeration);
       setDone(true);

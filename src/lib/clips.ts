@@ -186,12 +186,8 @@ export async function setClipStatus(clip: Clip, status: ClipStatus) {
   const campaignRef = doc(db, "campaigns", clip.campaignId);
   const clipRef = doc(db, "clips", clip.id);
   const payout = clip.payoutAtSubmission ?? 0;
-  // A plain `let` reassigned only inside the transaction's callback defeats TS's
-  // control-flow narrowing below (it only sees the `= null` at declaration) — a boxed
-  // object sidesteps that since it's a property read, not a re-narrowed identifier.
-  const exhausted: { value: { brandId: string; title: string } | null } = { value: null };
 
-  await runTransaction(db, async (tx) => {
+  const exhausted = await runTransaction(db, async (tx) => {
     const snap = await tx.get(campaignRef);
     if (!snap.exists()) throw new Error("This campaign no longer exists.");
     const campaign = snap.data() as Campaign;
@@ -211,15 +207,15 @@ export async function setClipStatus(clip: Clip, status: ClipStatus) {
       // rather than relying on someone noticing and flipping the status by hand.
       ...(budgetUsedUp ? { status: "completed" } : {}),
     });
-    if (budgetUsedUp) exhausted.value = { brandId: campaign.brandId, title: campaign.title };
+    return budgetUsedUp ? { brandId: campaign.brandId, title: campaign.title } : null;
   });
   notifyClipResolved(clip, status);
-  if (exhausted.value) {
+  if (exhausted) {
     createNotification({
-      userId: exhausted.value.brandId,
+      userId: exhausted.brandId,
       type: "budget_exhausted",
       title: "Campaign budget used up",
-      body: `"${exhausted.value.title}" has paid out its full budget and is now marked completed.`,
+      body: `"${exhausted.title}" has paid out its full budget and is now marked completed.`,
       link: `/dashboard/campaigns/${clip.campaignId}`,
       campaignId: clip.campaignId,
     }).catch((error) => console.error("Failed to create budget-exhausted notification:", error));

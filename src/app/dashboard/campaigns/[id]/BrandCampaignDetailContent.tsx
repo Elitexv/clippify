@@ -38,7 +38,10 @@ export default function BrandCampaignDetailContent() {
   const [clips, setClips] = useState<Clip[]>([]);
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
   const [clipError, setClipError] = useState("");
-  const [payoutDraft, setPayoutDraft] = useState("");
+  const [payoutDraft, setPayoutDraft] = useState<string | null>(null);
+  const [savingPayout, setSavingPayout] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [detailError, setDetailError] = useState("");
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
@@ -66,6 +69,7 @@ export default function BrandCampaignDetailContent() {
 
   const saveEdits = async () => {
     setSaving(true);
+    setDetailError("");
     try {
       await updateCampaignDetails(id, {
         title: title.trim(),
@@ -74,6 +78,8 @@ export default function BrandCampaignDetailContent() {
         channelLink: channelLink.trim(),
       });
       setEditing(false);
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : "Couldn't save those changes.");
     } finally {
       setSaving(false);
     }
@@ -81,14 +87,34 @@ export default function BrandCampaignDetailContent() {
 
   const changeStatus = async (status: CampaignStatus) => {
     if (!campaign || status === campaign.status) return;
-    await updateCampaignStatus(id, status);
+    setSavingStatus(true);
+    setDetailError("");
+    try {
+      await updateCampaignStatus(id, status);
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : "Couldn't update the campaign status.");
+    } finally {
+      setSavingStatus(false);
+    }
   };
 
   const savePayout = async () => {
-    if (!campaign || payoutDraft === "") return;
+    if (!campaign || payoutDraft === null || payoutDraft === "") return;
     const amount = Number(payoutDraft);
-    if (!Number.isFinite(amount) || amount === campaign.payoutPerClip) return;
-    await updateCampaignPayout(id, amount);
+    if (!Number.isFinite(amount) || amount === campaign.payoutPerClip) {
+      setPayoutDraft(null);
+      return;
+    }
+    setSavingPayout(true);
+    setDetailError("");
+    try {
+      await updateCampaignPayout(id, amount);
+      setPayoutDraft(null);
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : "Couldn't update the payout.");
+    } finally {
+      setSavingPayout(false);
+    }
   };
 
   const resolveClip = async (clip: Clip, status: "approved" | "rejected") => {
@@ -150,7 +176,7 @@ export default function BrandCampaignDetailContent() {
             <select
               value={campaign.status}
               onChange={(e) => changeStatus(e.target.value as CampaignStatus)}
-              disabled={campaign.status === "awaiting_payment"}
+              disabled={campaign.status === "awaiting_payment" || savingStatus}
               className={`shrink-0 rounded-full border-0 px-2.5 py-1 text-xs font-medium capitalize disabled:opacity-60 ${statusStyle[campaign.status]}`}
             >
               {campaign.status === "awaiting_payment" && <option value="awaiting_payment">awaiting payment</option>}
@@ -161,6 +187,12 @@ export default function BrandCampaignDetailContent() {
               ))}
             </select>
           </div>
+
+          {detailError && (
+            <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">
+              {detailError}
+            </p>
+          )}
 
           {editing ? (
             <div>
@@ -228,10 +260,11 @@ export default function BrandCampaignDetailContent() {
               <div className="flex items-center gap-1">
                 <span className="text-slate-900 dark:text-white">₦</span>
                 <input
-                  value={payoutDraft || String(campaign.payoutPerClip)}
+                  value={payoutDraft ?? String(campaign.payoutPerClip)}
                   onChange={(e) => setPayoutDraft(e.target.value)}
                   onBlur={savePayout}
-                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  disabled={savingPayout}
+                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white"
                 />
               </div>
             </div>

@@ -129,9 +129,13 @@ service cloud.firestore {
         isAdmin()
         || (
           // A creator notifying the brand that they submitted a clip to one of the
-          // brand's own campaigns.
+          // brand's own campaigns. Tied to the clip the requesting user just created
+          // (not just the claimed userId/campaignId) so another signed-in account can't
+          // spam a brand with fabricated submission notifications.
           request.resource.data.type == 'clip_submitted'
           && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.brandId == request.resource.data.userId
+          && get(/databases/$(database)/documents/clips/$(request.resource.data.clipId)).data.creatorId == request.auth.uid
+          && get(/databases/$(database)/documents/clips/$(request.resource.data.clipId)).data.campaignId == request.resource.data.campaignId
         )
         || (
           // The brand notifying a creator that their clip to one of the brand's own
