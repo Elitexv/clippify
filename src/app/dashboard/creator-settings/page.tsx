@@ -24,9 +24,9 @@ const inputClass =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
 const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 
-const CONNECTABLE_PLATFORMS: SocialPlatform[] = ["instagram", "reddit", "threads", "x"];
+const CONNECTABLE_PLATFORMS: SocialPlatform[] = ["tiktok", "instagram", "reddit", "threads", "x"];
 // No OAuth flow for these: a creator just enters their handle or profile link.
-const MANUAL_ONLY_PLATFORMS: SocialPlatform[] = ["tiktok", "bluesky"];
+const MANUAL_ONLY_PLATFORMS: SocialPlatform[] = ["bluesky"];
 
 const socialMeta: Record<SocialPlatform, { name: string; monogram: string; badgeClass: string }> = {
   tiktok: { name: "TikTok", monogram: "Tt", badgeClass: "bg-black text-white" },

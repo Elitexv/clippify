@@ -1,10 +1,16 @@
 // TikTok video stats via TikAPI (https://tikapi.io, an unofficial TikTok API) —
-// src/app/api/tiktok/video-stats/route.ts holds the API key server-side. No per-creator
-// "connect" step: TikAPI can look up any public video's stats by ID or share link
-// alone (TikAPI's own OAuth-style "Connect" product 404s as of 2026-10-15, and even if
-// it worked, isn't needed for this — the same trust model as the YouTube Data API
-// lookup in src/lib/youtube.ts). A creator's TikTok handle is still just a manual
-// field on Creator Settings (src/lib/socials.ts) — there's nothing to authenticate.
+// src/app/api/tiktok/video-stats/route.ts holds the API key server-side. Works for any
+// public video by ID or share link alone, no connect step needed (TikAPI's own
+// OAuth-style "Connect" product 404s as of 2026-10-15, and even if it worked, isn't
+// needed for this — the same trust model as the YouTube Data API lookup in
+// src/lib/youtube.ts).
+//
+// Separately, as of 2026-10-29, a creator can connect their real TikTok account via
+// the official Login Kit OAuth flow (src/app/api/tiktok/{authorize,callback,refresh},
+// src/lib/socials.ts) — see fetchMyTikTokVideos below. That's a different, unrelated
+// capability: official Display API video details for the creator's *own* videos,
+// which this file's public-link lookup above can't provide (TikAPI has no way to tell
+// us "these are your videos").
 
 const TIKTOK_URL_PATTERN = /tiktok\.com\/(?:@[\w.-]+\/video|v)\/(\d+)/;
 
@@ -61,6 +67,41 @@ export async function fetchTikTokVideoStats(url: string): Promise<TikTokVideoSta
     });
     if (!res.ok) return null;
     return (await res.json()) as TikTokVideoStats;
+  } catch {
+    return null;
+  }
+}
+
+export type MyTikTokVideo = {
+  id: string;
+  title: string;
+  thumbnailUrl: string;
+  shareUrl: string;
+  viewCount: number;
+  likeCount: number;
+  commentCount: number;
+  shareCount: number;
+  createdAt: number;
+};
+
+/**
+ * Lists the connected creator's own TikTok videos via the official Display API
+ * (src/app/api/tiktok/videos), used by TikTokVideoPicker. Unlike fetchTikTokVideoStats
+ * above, this needs a real OAuth access token — see getValidSocialAccessToken in
+ * src/lib/socials.ts — and only returns the token's own account's videos.
+ */
+export async function fetchMyTikTokVideos(
+  accessToken: string,
+  cursor?: number,
+): Promise<{ videos: MyTikTokVideo[]; cursor: number; hasMore: boolean } | null> {
+  try {
+    const res = await fetch("/api/tiktok/videos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessToken, ...(cursor ? { cursor } : {}) }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as { videos: MyTikTokVideo[]; cursor: number; hasMore: boolean };
   } catch {
     return null;
   }

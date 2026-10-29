@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Eye, Heart, ImagePlus, Link2, Loader2, Upload, X } from "lucide-react";
+import { CheckCircle2, Eye, Heart, ImagePlus, Link2, Loader2, Music2, Upload, X } from "lucide-react";
 import { btnPrimary } from "@/lib/button-styles";
 import type { Campaign } from "@/lib/firebase-helpers";
 import { createClip, uploadClipThumbnail, uploadClipVideo } from "@/lib/clips";
 import { createNotification } from "@/lib/notifications";
 import { getPublicSettings } from "@/lib/platform-settings";
 import { extractYouTubeVideoId, fetchYouTubeStats } from "@/lib/youtube";
-import { fetchTikTokVideoStats, isTikTokLink } from "@/lib/tiktok";
+import { fetchTikTokVideoStats, isTikTokLink, type MyTikTokVideo } from "@/lib/tiktok";
+import { getSocialConnection, getValidSocialAccessToken } from "@/lib/socials";
+import TikTokVideoPicker from "@/components/dashboard/TikTokVideoPicker";
 
 type LinkStats = { title: string; thumbnailUrl: string; viewCount: number; likeCount: number | null };
 
@@ -57,10 +59,39 @@ export default function SubmitClipModal({
   const [fetchingStats, setFetchingStats] = useState(false);
   const [lastCheckedLink, setLastCheckedLink] = useState("");
   const [tiktokHint, setTiktokHint] = useState("");
+  const [tiktokConnected, setTiktokConnected] = useState(false);
+  const [tiktokPickerToken, setTiktokPickerToken] = useState<string | null>(null);
+  const [tiktokPickerLoading, setTiktokPickerLoading] = useState(false);
 
   useEffect(() => {
     getPublicSettings().then((s) => setYoutubeApiKey(s.youtubeApiKey));
   }, []);
+
+  useEffect(() => {
+    getSocialConnection(userId, "tiktok").then((connection) => {
+      setTiktokConnected(!!connection && !connection.manual && !!connection.accessToken);
+    });
+  }, [userId]);
+
+  const openTikTokPicker = async () => {
+    setTiktokPickerLoading(true);
+    try {
+      const token = await getValidSocialAccessToken(userId, "tiktok");
+      if (token) setTiktokPickerToken(token);
+      else setTiktokHint("Couldn't reach your TikTok connection — try reconnecting it on Creator Settings.");
+    } finally {
+      setTiktokPickerLoading(false);
+    }
+  };
+
+  const selectTikTokVideo = (video: MyTikTokVideo) => {
+    setLink(video.shareUrl);
+    setLastCheckedLink(video.shareUrl);
+    if (!title.trim()) setTitle(video.title);
+    setStats({ title: video.title, thumbnailUrl: video.thumbnailUrl, viewCount: video.viewCount, likeCount: video.likeCount });
+    setTiktokHint("");
+    setTiktokPickerToken(null);
+  };
 
   const checkLinkForStats = async () => {
     const trimmed = link.trim();
@@ -254,7 +285,24 @@ export default function SubmitClipModal({
 
                 {mode === "link" ? (
                   <div className="mt-3">
-                    <label className={labelClass}>Link to your clip</label>
+                    <div className="flex items-center justify-between">
+                      <label className={labelClass}>Link to your clip</label>
+                      {tiktokConnected && (
+                        <button
+                          type="button"
+                          onClick={openTikTokPicker}
+                          disabled={tiktokPickerLoading}
+                          className="flex items-center gap-1 text-xs font-medium text-amber-600 hover:underline disabled:opacity-60 dark:text-yellow-400"
+                        >
+                          {tiktokPickerLoading ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Music2 className="h-3 w-3" />
+                          )}
+                          Choose from TikTok
+                        </button>
+                      )}
+                    </div>
                     <div className="relative mt-1.5">
                       <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                       <input
@@ -410,6 +458,14 @@ export default function SubmitClipModal({
           </>
         )}
       </div>
+
+      {tiktokPickerToken && (
+        <TikTokVideoPicker
+          accessToken={tiktokPickerToken}
+          onSelect={selectTikTokVideo}
+          onClose={() => setTiktokPickerToken(null)}
+        />
+      )}
     </div>
   );
 }
