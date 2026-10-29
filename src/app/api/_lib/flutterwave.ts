@@ -77,3 +77,41 @@ export async function verifyFlutterwaveWebhook(header: string | null): Promise<b
   const b = Buffer.from(keys.webhookSecretHash);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+export type FlutterwaveVerifiedTransaction = {
+  id: number;
+  txRef: string;
+  status: string;
+  amount: number;
+  currency: string;
+};
+
+/**
+ * Looks a transaction up by our own tx_ref (== the campaign id) instead of waiting on
+ * the webhook — see /api/flutterwave/verify. A real production gap proved this
+ * necessary: Flutterwave's dashboard webhook delivery is an external configuration
+ * step nothing in this codebase can guarantee is set up correctly, and when it isn't,
+ * a campaign a brand genuinely paid for stays stuck on "awaiting_payment" forever with
+ * no recourse. This calls Flutterwave directly with our own secret key, so it doesn't
+ * depend on that configuration at all. Returns null on any failure (not found,
+ * network error, Flutterwave not configured) rather than throwing — callers treat
+ * "couldn't verify" and "verified as unpaid" the same way, by leaving the campaign
+ * exactly as it was.
+ */
+export async function verifyFlutterwaveReference(txRef: string): Promise<FlutterwaveVerifiedTransaction | null> {
+  const keys = await getFlutterwaveKeys();
+  if (!keys) return null;
+
+  try {
+    const res = await fetch(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(txRef)}`,
+      { headers: { Authorization: `Bearer ${keys.secretKey}` } },
+    );
+    const result = await res.json();
+    const tx = result?.data;
+    if (result?.status !== "success" || !tx) return null;
+    return { id: tx.id, txRef: tx.tx_ref, status: tx.status, amount: tx.amount, currency: tx.currency };
+  } catch {
+    return null;
+  }
+}

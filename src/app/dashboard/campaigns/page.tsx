@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ClipboardList, ExternalLink, Plus, Search } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ClipboardList, ExternalLink, Loader2, Plus, RefreshCw, Search } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import EmptyState from "@/components/dashboard/EmptyState";
@@ -17,6 +18,7 @@ import {
   type CampaignStatus,
 } from "@/lib/firebase-helpers";
 import { setClipStatus, subscribeToClipsForCampaign, type Clip } from "@/lib/clips";
+import { verifyFlutterwavePayment } from "@/lib/flutterwave";
 
 const statusOptions: CampaignStatus[] = ["draft", "active", "completed", "cancelled"];
 const filterOptions: Array<CampaignStatus | "all"> = ["all", "draft", "awaiting_payment", "active", "completed", "cancelled"];
@@ -36,13 +38,17 @@ const inputClass =
 export default function MyCampaignsPage() {
   return (
     <RequireAuth area="brand">
-      <MyCampaignsContent />
+      <Suspense fallback={null}>
+        <MyCampaignsContent />
+      </Suspense>
     </RequireAuth>
   );
 }
 
 function MyCampaignsContent() {
   const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [entries, setEntries] = useState<Clip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +58,8 @@ function MyCampaignsContent() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | "all">("all");
   const [sort, setSort] = useState<SortOption>("newest");
+  const [verifyingPaymentFor, setVerifyingPaymentFor] = useState<string | null>(null);
+  const [paymentMessage, setPaymentMessage] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -61,6 +69,37 @@ function MyCampaignsContent() {
     });
     return () => unsubscribe();
   }, [user]);
+
+  // Flutterwave's redirect back from checkout carries ?paid=<campaignId> — the
+  // dashboard webhook (see src/app/api/flutterwave/webhook) is what's *supposed* to
+  // activate the campaign, but its delivery depends on a Flutterwave dashboard setting
+  // this app can't guarantee is configured. Checking directly against Flutterwave's
+  // own records the moment the brand lands back here means a paid campaign doesn't
+  // depend solely on that webhook ever arriving.
+  useEffect(() => {
+    const paidId = searchParams.get("paid");
+    if (!paidId) return;
+    router.replace("/dashboard/campaigns");
+    checkFlutterwavePayment(paidId, "Payment confirmed — your campaign is live.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once for the id present on first render
+  }, []);
+
+  const checkFlutterwavePayment = async (campaignId: string, successMessage: string) => {
+    setVerifyingPaymentFor(campaignId);
+    setPaymentMessage("");
+    try {
+      const result = await verifyFlutterwavePayment(campaignId);
+      if (!result.ok) {
+        setPaymentMessage(result.error);
+      } else if (result.verified) {
+        setPaymentMessage(successMessage);
+      } else {
+        setPaymentMessage("No successful payment found yet for that campaign. If you just paid, this can take a minute — try again shortly.");
+      }
+    } finally {
+      setVerifyingPaymentFor(null);
+    }
+  };
 
   // Subscribed per-campaign (not "all clips, filter client-side") so this only ever
   // reads clips belonging to this brand's own campaigns.
@@ -144,6 +183,12 @@ function MyCampaignsContent() {
           Post a Campaign
         </Link>
       </div>
+
+      {paymentMessage && (
+        <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400">
+          {paymentMessage}
+        </p>
+      )}
 
       {campaigns.length > 0 && (
         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -244,6 +289,21 @@ function MyCampaignsContent() {
 
                 <BudgetBar campaign={c} className="mt-3" />
                 {c.deadline && <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{c.deadline}</p>}
+
+                {c.status === "awaiting_payment" && c.paymentProvider === "flutterwave" && (
+                  <button
+                    onClick={() => checkFlutterwavePayment(c.id, "Payment confirmed — campaign is now live.")}
+                    disabled={verifyingPaymentFor === c.id}
+                    className="mt-2 flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:underline disabled:opacity-60 dark:text-yellow-400"
+                  >
+                    {verifyingPaymentFor === c.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                    Check payment status
+                  </button>
+                )}
 
                 <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs dark:border-white/10">
                   <span className="text-slate-500 dark:text-slate-400">Payout per approved clip</span>

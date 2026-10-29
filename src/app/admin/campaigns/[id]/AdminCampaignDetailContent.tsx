@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Briefcase, ExternalLink, Loader2, Pencil } from "lucide-react";
+import { ArrowLeft, Briefcase, ExternalLink, Loader2, Pencil, RefreshCw } from "lucide-react";
 import BudgetBar from "@/components/dashboard/BudgetBar";
 import CampaignParticipants from "@/components/dashboard/CampaignParticipants";
 import { btnPrimary, btnSecondary } from "@/lib/button-styles";
@@ -16,6 +16,7 @@ import {
   type CampaignStatus,
 } from "@/lib/firebase-helpers";
 import { setClipStatus, subscribeToClipsForCampaign, type Clip } from "@/lib/clips";
+import { verifyFlutterwavePayment } from "@/lib/flutterwave";
 
 const statusOptions: CampaignStatus[] = ["draft", "active", "completed", "cancelled"];
 
@@ -41,6 +42,8 @@ export default function AdminCampaignDetailContent() {
   const [savingPayout, setSavingPayout] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [detailError, setDetailError] = useState("");
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState("");
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
@@ -94,6 +97,19 @@ export default function AdminCampaignDetailContent() {
       setDetailError(error instanceof Error ? error.message : "Couldn't update the campaign status.");
     } finally {
       setSavingStatus(false);
+    }
+  };
+
+  const checkPayment = async () => {
+    setCheckingPayment(true);
+    setPaymentMessage("");
+    try {
+      const result = await verifyFlutterwavePayment(id);
+      if (!result.ok) setPaymentMessage(result.error);
+      else if (result.verified) setPaymentMessage("Payment confirmed — campaign is now live.");
+      else setPaymentMessage("No successful payment found yet. If the brand just paid, this can take a minute — try again shortly.");
+    } finally {
+      setCheckingPayment(false);
     }
   };
 
@@ -187,6 +203,20 @@ export default function AdminCampaignDetailContent() {
             </select>
           </div>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Posted by {campaign.brandName || "a brand"}</p>
+
+          {campaign.status === "awaiting_payment" && campaign.paymentProvider === "flutterwave" && (
+            <button
+              onClick={checkPayment}
+              disabled={checkingPayment}
+              className="mt-2 flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:underline disabled:opacity-60 dark:text-yellow-400"
+            >
+              {checkingPayment ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Check payment status
+            </button>
+          )}
+          {paymentMessage && (
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{paymentMessage}</p>
+          )}
 
           {detailError && (
             <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">
