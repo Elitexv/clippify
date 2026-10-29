@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail, X } from "lucide-react";
@@ -11,7 +11,7 @@ import OAuthButtons from "./OAuthButtons";
 import PasswordField from "./PasswordField";
 
 export default function LoginForm() {
-  const { login, signInWithGoogle, signInWithApple, isLoading, getDashboardRoute, sendPasswordReset } = useAuth();
+  const { login, signInWithGoogle, signInWithTikTok, isLoading, getDashboardRoute, sendPasswordReset } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -44,13 +44,12 @@ export default function LoginForm() {
     }
   };
 
-  const handleOAuth = async (provider: "google" | "apple") => {
+  const handleGoogle = async () => {
     if (isLoading || oauthBusy) return;
     setOauthBusy(true);
     setError("");
     try {
-      const signIn = provider === "google" ? signInWithGoogle : signInWithApple;
-      const result = await signIn();
+      const result = await signInWithGoogle();
       if (!result.ok) {
         setError(result.error);
         return;
@@ -60,6 +59,38 @@ export default function LoginForm() {
       setOauthBusy(false);
     }
   };
+
+  // "Continue with TikTok" is a full-page redirect (see OAuthButtons), not a click
+  // handler — this picks up the result when TikTok's OAuth round-trip redirects back
+  // here with a Firebase custom token in the URL fragment (never a query string, so it
+  // never reaches server logs — see src/app/api/_lib/tiktok-login.ts), the same
+  // read-once-and-scrub pattern Creator Settings uses for the account-connect flow.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash || !hash.includes("tiktok_login_")) return;
+    const params = new URLSearchParams(hash.slice(1));
+    window.history.replaceState(null, "", window.location.pathname);
+
+    const loginError = params.get("tiktok_login_error");
+    if (loginError) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from a one-time URL fragment on mount, not derived render state
+      setError(decodeURIComponent(loginError));
+      return;
+    }
+    const token = params.get("tiktok_login_token");
+    const role = params.get("tiktok_login_role") === "brand" ? "brand" : "creator";
+    if (!token) return;
+
+    setOauthBusy(true);
+    signInWithTikTok(token, role)
+      .then((result) => {
+        if (!result.ok) setError(result.error);
+        else goToDashboard(result.user.role);
+      })
+      .finally(() => setOauthBusy(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once for the fragment present on first render
+  }, []);
 
   return (
     <div className="animate-fade-in-up">
@@ -79,8 +110,8 @@ export default function LoginForm() {
       <div className="mt-6">
         <OAuthButtons
           disabled={oauthBusy}
-          onGoogle={() => handleOAuth("google")}
-          onApple={() => handleOAuth("apple")}
+          onGoogle={handleGoogle}
+          tiktokHref="/api/tiktok/authorize?intent=login"
         />
       </div>
 

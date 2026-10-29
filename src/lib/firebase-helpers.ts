@@ -19,8 +19,8 @@ import {
   signOut,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithCustomToken,
   GoogleAuthProvider,
-  OAuthProvider,
   fetchSignInMethodsForEmail,
   type User,
 } from "firebase/auth";
@@ -236,11 +236,11 @@ export async function loginWithFirebase(email: string, password: string) {
   return profile;
 }
 
-export async function signInWithOAuth(providerName: "google" | "apple", role: AppRole = "creator") {
-  const provider =
-    providerName === "google"
-      ? new GoogleAuthProvider()
-      : new OAuthProvider("apple.com");
+// Apple sign-in was replaced by TikTok (see completeTikTokSignIn below), which isn't a
+// Firebase-native popup provider — so this is Google-only now rather than a
+// provider-name parameter for a union of one.
+export async function signInWithGoogleOAuth(role: AppRole = "creator") {
+  const provider = new GoogleAuthProvider();
 
   let credential;
   try {
@@ -250,6 +250,29 @@ export async function signInWithOAuth(providerName: "google" | "apple", role: Ap
   }
   // `role` only takes effect for a brand-new account (ensureUserProfile only uses the
   // fallback role when no profile doc exists yet) — a returning user keeps their real role.
+  const profile = await ensureUserProfile(credential.user, role);
+  try {
+    await assertNotBlockedByMaintenance(profile.role);
+  } catch (error) {
+    await signOut(auth);
+    throw error;
+  }
+  return profile;
+}
+
+// Completes "Continue with TikTok" (see src/app/api/tiktok/callback/route.ts's
+// intent=login branch) — unlike signInWithOAuth above, there's no popup here: the
+// custom token already proves a real TikTok OAuth round-trip happened server-side, so
+// this just exchanges it for a session, same tail as signInWithOAuth otherwise. TikTok
+// never provides an email, so a brand-new profile here has none — left for the
+// creator/brand to add later wherever it's actually needed (see post-job's email gate).
+export async function completeTikTokSignIn(customToken: string, role: AppRole = "creator") {
+  let credential;
+  try {
+    credential = await signInWithCustomToken(auth, customToken);
+  } catch (error) {
+    throw new Error(getAuthErrorMessage(error));
+  }
   const profile = await ensureUserProfile(credential.user, role);
   try {
     await assertNotBlockedByMaintenance(profile.role);
@@ -525,6 +548,16 @@ export function subscribeToAllUsers(callback: (users: AppUser[]) => void) {
 
 export async function setUserStatus(uid: string, status: AccountStatus) {
   await setDoc(doc(db, "users", uid), { status, updatedAt: new Date().toISOString() }, { merge: true });
+}
+
+// A TikTok sign-in (see completeTikTokSignIn) never has an email — TikTok's Login Kit
+// doesn't provide one — so this fills it in wherever an email first becomes necessary
+// (currently just post-job's checkout; see that page's email gate). The Firestore
+// profile's `email` field is the only thing checkout code reads (both client-side
+// Paystack and the server-side Flutterwave/Bachs routes), so this alone is enough —
+// no need to also touch the Firebase Auth user record.
+export async function updateUserEmail(uid: string, email: string) {
+  await setDoc(doc(db, "users", uid), { email, updatedAt: new Date().toISOString() }, { merge: true });
 }
 
 export async function setUserRole(uid: string, role: AppRole) {

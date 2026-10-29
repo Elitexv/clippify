@@ -3,11 +3,14 @@ const buttonClass =
 
 export default function OAuthButtons({
   onGoogle,
-  onApple,
+  tiktokHref,
   disabled,
 }: {
   onGoogle?: () => void | Promise<void>;
-  onApple?: () => void | Promise<void>;
+  // A real page navigation, not a click handler — TikTok sign-in is a full OAuth
+  // redirect round-trip through our own /api/tiktok/authorize (see
+  // src/app/api/tiktok/callback's intent=login branch), unlike Google's popup flow.
+  tiktokHref?: string;
   disabled?: boolean;
 }) {
   return (
@@ -16,10 +19,16 @@ export default function OAuthButtons({
         <GoogleIcon className="h-4 w-4" />
         Continue with Google
       </button>
-      <button type="button" className={buttonClass} disabled={disabled} onClick={() => void onApple?.()}>
-        <AppleIcon className="h-4 w-4" />
-        Continue with Apple
-      </button>
+      {tiktokHref && (
+        <a
+          href={disabled ? undefined : tiktokHref}
+          aria-disabled={disabled}
+          className={`${buttonClass} ${disabled ? "pointer-events-none" : ""}`}
+        >
+          <TikTokIcon className="h-4 w-4" />
+          Continue with TikTok
+        </a>
+      )}
     </div>
   );
 }
@@ -47,13 +56,10 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-function AppleIcon({ className }: { className?: string }) {
+function TikTokIcon({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={`${className} fill-black dark:fill-white`}
-    >
-      <path d="M17.05 12.54c-.03-2.36 1.93-3.5 2.02-3.55-1.1-1.6-2.81-1.82-3.42-1.85-1.46-.15-2.85.86-3.59.86-.74 0-1.88-.84-3.09-.82-1.59.02-3.06.93-3.88 2.35-1.65 2.87-.42 7.13 1.19 9.46.78 1.14 1.72 2.42 2.95 2.37 1.18-.05 1.63-.76 3.06-.76 1.42 0 1.83.76 3.08.74 1.27-.02 2.08-1.16 2.86-2.31.9-1.32 1.27-2.6 1.29-2.67-.03-.01-2.44-.94-2.47-3.72zM14.73 5.38c.65-.79 1.09-1.88.97-2.98-.94.04-2.08.63-2.75 1.41-.6.7-1.13 1.83-.99 2.9 1.04.08 2.11-.53 2.77-1.33z" />
+    <svg viewBox="0 0 24 24" className={`${className} fill-black dark:fill-white`}>
+      <path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z" />
     </svg>
   );
 }

@@ -10,11 +10,12 @@ import {
 } from "react";
 import AppLoader from "@/components/AppLoader";
 import {
+  completeTikTokSignIn,
   loginWithFirebase,
   logoutFromFirebase,
   registerWithFirebase,
   requestPasswordReset,
-  signInWithOAuth,
+  signInWithGoogleOAuth,
   subscribeToAuth,
   type AppUser,
 } from "@/lib/firebase-helpers";
@@ -41,7 +42,10 @@ type AuthState = {
     role: Exclude<AppRole, "admin">;
   }) => Promise<AppUser>;
   signInWithGoogle: (role?: Exclude<AppRole, "admin">) => Promise<LoginResult>;
-  signInWithApple: (role?: Exclude<AppRole, "admin">) => Promise<LoginResult>;
+  // Takes the Firebase custom token TikTok login hands back via a URL fragment (see
+  // src/app/api/tiktok/callback's intent=login branch) — there's no popup step here,
+  // unlike Google, since the OAuth round-trip already happened server-side.
+  signInWithTikTok: (customToken: string, role?: Exclude<AppRole, "admin">) => Promise<LoginResult>;
   logout: () => Promise<void>;
   getDashboardRoute: (role?: AppRole | null) => string;
   sendPasswordReset: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -116,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async (role: Exclude<AppRole, "admin"> = "creator"): Promise<LoginResult> => {
     try {
-      const nextUser = await signInWithOAuth("google", role);
+      const nextUser = await signInWithGoogleOAuth(role);
       realProfileUidRef.current = nextUser.id;
       setUser(nextUser);
       return { ok: true, user: nextUser };
@@ -126,14 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithApple = async (role: Exclude<AppRole, "admin"> = "creator"): Promise<LoginResult> => {
+  const signInWithTikTok = async (
+    customToken: string,
+    role: Exclude<AppRole, "admin"> = "creator",
+  ): Promise<LoginResult> => {
     try {
-      const nextUser = await signInWithOAuth("apple", role);
+      const nextUser = await completeTikTokSignIn(customToken, role);
       realProfileUidRef.current = nextUser.id;
       setUser(nextUser);
       return { ok: true, user: nextUser };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Apple sign-in failed.";
+      const message = error instanceof Error ? error.message : "TikTok sign-in failed.";
       return { ok: false, error: message };
     }
   };
@@ -164,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         signInWithGoogle,
-        signInWithApple,
+        signInWithTikTok,
         logout,
         getDashboardRoute,
         sendPasswordReset,

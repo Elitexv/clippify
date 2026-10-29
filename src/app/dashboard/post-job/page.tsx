@@ -10,6 +10,7 @@ import {
   Landmark,
   Link2,
   Loader2,
+  Mail,
   Wallet,
   X,
   Zap,
@@ -17,7 +18,7 @@ import {
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import { btnPrimary, btnSecondary } from "@/lib/button-styles";
-import { createCampaign, uploadCampaignFlyer } from "@/lib/firebase-helpers";
+import { createCampaign, updateUserEmail, uploadCampaignFlyer } from "@/lib/firebase-helpers";
 import { auth } from "@/lib/firebase";
 import { payWithPaystack } from "@/lib/paystack";
 import { recordTransaction } from "@/lib/transactions";
@@ -68,6 +69,12 @@ function PostCampaignPageContent() {
   const [flyerPreview, setFlyerPreview] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
   const [step, setStep] = useState<Step>("form");
+  // A TikTok sign-in never has an email (see lib/firebase-helpers.ts's
+  // completeTikTokSignIn) — gated here, the first place one actually becomes
+  // necessary, rather than at sign-up. Local state (not just reading user.email
+  // directly) so the value used for Paystack/persisting is correct immediately after
+  // saving, without waiting on the auth context's Firestore listener to catch up.
+  const [email, setEmail] = useState(user?.email ?? "");
 
   const [settings, setSettings] = useState<PublicPlatformSettings>(defaultSettings);
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -87,6 +94,15 @@ function PostCampaignPageContent() {
       setSettingsLoading(false);
     });
   }, []);
+
+  // Catches up once the auth context's Firestore-backed profile actually loads (it's
+  // often not ready on first render) — only while the field is still untouched, so
+  // this never clobbers something the user is actively typing.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time catch-up from an external source (the auth context's async profile load), not state derived from render
+    if (!email && user?.email) setEmail(user.email);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally excludes `email` so this only ever fires on user.email arriving, never re-fires from the user's own typing
+  }, [user?.email]);
 
   useEffect(() => {
     return () => {
@@ -111,6 +127,10 @@ function PostCampaignPageContent() {
     setFormError("");
     if (!title.trim() || !channelLink.trim() || !budget.trim() || !flyer) {
       setFormError("Fill in the campaign title, channel link, budget, and flyer image.");
+      return;
+    }
+    if (!email.trim()) {
+      setFormError("Add an email so we can send your payment receipt.");
       return;
     }
     if (budgetAmount < minBudget) {
@@ -151,6 +171,13 @@ function PostCampaignPageContent() {
     setPaying(true);
     setFormError("");
     try {
+      // Same reasoning as the flyer upload below: do this before charging anything, so
+      // a failure here surfaces immediately instead of after payment. Only writes when
+      // it's actually new — a returning user with an email already on file never hits
+      // this.
+      if (email.trim() && email.trim() !== user.email) {
+        await updateUserEmail(user.id, email.trim());
+      }
       // Upload the flyer *before* charging the customer — if this fails (e.g. Storage
       // misconfigured), they see the error immediately instead of being charged and
       // then stuck on "Processing payment..." while a post-payment step silently hangs.
@@ -196,7 +223,7 @@ function PostCampaignPageContent() {
       const reference = `clippifi-campaign-${user.id}-${Date.now()}`;
       const result = await payWithPaystack({
         publicKey,
-        email: user.email,
+        email,
         amountNaira: total,
         reference,
       });
@@ -390,6 +417,25 @@ function PostCampaignPageContent() {
           onSubmit={handleContinueToPayment}
           className="mt-6 flex flex-col gap-5 rounded-2xl border border-slate-100 bg-white p-6 dark:border-white/10 dark:bg-[#111]"
         >
+          {!user?.email && (
+            <div>
+              <label className={labelClass}>Email address</label>
+              <div className="relative mt-1.5">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className={`${inputClass} mt-0 pl-10`}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-slate-400">
+                Your TikTok sign-in didn&apos;t include an email — needed for your payment receipt.
+              </p>
+            </div>
+          )}
+
           <div>
             <label className={labelClass}>Campaign title</label>
             <input

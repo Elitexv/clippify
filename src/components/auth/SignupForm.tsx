@@ -27,7 +27,7 @@ const roles = [
 type RoleId = (typeof roles)[number]["id"];
 
 export default function SignupForm() {
-  const { register, signInWithGoogle, signInWithApple, getDashboardRoute } = useAuth();
+  const { register, signInWithGoogle, getDashboardRoute } = useAuth();
   const router = useRouter();
 
   const [step, setStep] = useState<"role" | "details">("role");
@@ -69,13 +69,12 @@ export default function SignupForm() {
     }
   };
 
-  const handleOAuth = async (provider: "google" | "apple") => {
+  const handleGoogle = async () => {
     if (!role || oauthBusy) return;
     setOauthBusy(true);
     setError("");
     try {
-      const signIn = provider === "google" ? signInWithGoogle : signInWithApple;
-      const result = await signIn(role);
+      const result = await signInWithGoogle(role);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -160,8 +159,8 @@ export default function SignupForm() {
       <div className="mt-6">
         <OAuthButtons
           disabled={oauthBusy}
-          onGoogle={() => handleOAuth("google")}
-          onApple={() => handleOAuth("apple")}
+          onGoogle={handleGoogle}
+          tiktokHref={`/api/tiktok/authorize?intent=login&role=${role}`}
         />
       </div>
 

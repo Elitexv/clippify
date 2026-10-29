@@ -27,6 +27,13 @@ const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
 const CONNECTABLE_PLATFORMS: SocialPlatform[] = ["tiktok", "instagram", "reddit", "threads", "x"];
 // No OAuth flow for these: a creator just enters their handle or profile link.
 const MANUAL_ONLY_PLATFORMS: SocialPlatform[] = ["bluesky"];
+// TikTok is the only one of the OAuth-capable platforms with real developer-portal
+// credentials configured right now (see [[clippifi-social-oauth]]) — the others fall
+// back to a manual handle because Connect would otherwise just fail with "not
+// configured yet." TikTok doesn't need that escape hatch, so it skips straight to
+// "Connect" only — a manual TikTok handle with no real connection isn't useful for
+// anything this app does with it (video details, official stats).
+const OAUTH_ONLY_PLATFORMS: SocialPlatform[] = ["tiktok"];
 
 const socialMeta: Record<SocialPlatform, { name: string; monogram: string; badgeClass: string }> = {
   tiktok: { name: "TikTok", monogram: "Tt", badgeClass: "bg-black text-white" },
@@ -257,7 +264,9 @@ function CreatorSettingsContent() {
                 busy={busyPlatform === platform}
                 onConnect={`/api/${platform}/authorize`}
                 onDisconnect={() => handleDisconnectSocial(platform)}
-                onManualSave={(handle) => handleSaveManualSocial(platform, handle)}
+                onManualSave={
+                  OAUTH_ONLY_PLATFORMS.includes(platform) ? undefined : (handle) => handleSaveManualSocial(platform, handle)
+                }
               />
             );
           })}
