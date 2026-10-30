@@ -18,6 +18,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import type { Campaign } from "@/lib/firebase-helpers";
 import { createNotification } from "@/lib/notifications";
+import { awardXp, XP_REWARDS } from "@/lib/xp";
 
 export type ClipStatus = "pending" | "approved" | "rejected";
 
@@ -210,6 +211,9 @@ export async function setClipStatus(clip: Clip, status: ClipStatus) {
     return budgetUsedUp ? { brandId: campaign.brandId, title: campaign.title } : null;
   });
   notifyClipResolved(clip, status);
+  awardXp(clip.creatorId, clip.creatorName, XP_REWARDS.clipApproved).catch((error) =>
+    console.error("Failed to award clip-approved XP:", error),
+  );
   if (exhausted) {
     createNotification({
       userId: exhausted.brandId,

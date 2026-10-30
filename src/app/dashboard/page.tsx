@@ -16,6 +16,7 @@ import {
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { useAuth } from "@/lib/auth/auth-context";
 import StatCard from "@/components/dashboard/StatCard";
+import XpCard from "@/components/dashboard/XpCard";
 import EmptyState from "@/components/dashboard/EmptyState";
 import { fetchFavoriteIds, subscribeToApprovedClips, subscribeToClipsForUser, type Clip } from "@/lib/clips";
 import { subscribeToCampaignsForUser, type Campaign } from "@/lib/firebase-helpers";
@@ -192,6 +193,12 @@ function DashboardHomeContent() {
           <StatCard icon={DollarSign} label="Earnings" value={`₦${myEarnings.toFixed(2)}`} />
         )}
       </div>
+
+      {showCreator && (
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2">
+          <XpCard uid={user.id} />
+        </div>
+      )}
 
       <SectionHeader title="Featured Clips" href="/dashboard/browse" />
       {clips.length === 0 ? (

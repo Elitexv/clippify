@@ -1,6 +1,7 @@
 import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { createNotification } from "@/lib/notifications";
+import { awardXp, XP_REWARDS } from "@/lib/xp";
 
 // A creator can't submit a clip to a campaign until the brand approves a participation
 // request first — see /dashboard/competitions (creator) and the campaign detail pages
@@ -60,6 +61,9 @@ export async function requestToParticipate({
     campaignId,
     requestId,
   }).catch((error) => console.error("Failed to create participation-requested notification:", error));
+  awardXp(creatorId, creatorName, XP_REWARDS.participationRequested).catch((error) =>
+    console.error("Failed to award participation-request XP:", error),
+  );
 }
 
 export function subscribeToParticipationForCreator(
@@ -106,4 +110,9 @@ export async function setParticipationStatus(request: ParticipationRequest, stat
     campaignId: request.campaignId,
     requestId: request.id,
   }).catch((error) => console.error("Failed to create participation-resolved notification:", error));
+  if (status === "approved") {
+    awardXp(request.creatorId, request.creatorName, XP_REWARDS.participationApproved).catch((error) =>
+      console.error("Failed to award participation-approved XP:", error),
+    );
+  }
 }

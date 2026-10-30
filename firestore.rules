@@ -150,6 +150,31 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // --- leaderboard (creator XP) ---
+    // Denormalized rather than living on users/{uid} — the leaderboard needs every
+    // creator to read every other creator's name/xp, and users/{uid} is
+    // owner-only-readable (broadening that would leak email and other profile fields
+    // to any signed-in user). See src/lib/xp.ts. XP has no real monetary value (unlike
+    // campaign budgets/payouts), so this is a deliberately bounded-increment check
+    // rather than full server-side validation tying every award to one specific real
+    // event — a proportionate tradeoff, not an oversight.
+    match /leaderboard/{uid} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.xp is number
+        && request.resource.data.xp > 0
+        && request.resource.data.xp <= 100;
+
+      allow update: if isSignedIn()
+        && onlyChanged(['xp'])
+        && request.resource.data.xp is number
+        && request.resource.data.xp > resource.data.xp
+        && request.resource.data.xp <= resource.data.xp + 100;
+
+      allow delete: if false;
+    }
+
     // --- notifications ---
     // One doc per notification, recipient in `userId`. Written by whoever's action
     // triggered it (a creator submitting a clip notifies the brand; a brand/admin
