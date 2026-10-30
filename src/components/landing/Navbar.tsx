@@ -12,7 +12,7 @@ type NavLink = { label: string; href: string };
 
 const exploreLinks: NavLink[] = [
   { label: "Find Talent", href: "/dashboard/browse" },
-  { label: "Hire Streamers", href: "/dashboard/hire" },
+  { label: "Hire Clippers", href: "/dashboard/hire" },
 ];
 const resourceLinks: NavLink[] = [
   { label: "Creator Dashboard", href: "/dashboard" },

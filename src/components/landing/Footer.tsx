@@ -6,7 +6,7 @@ const columns = [
     title: "Marketplace",
     links: [
       { label: "Find Talent", href: "/dashboard/browse" },
-      { label: "Hire Streamers", href: "/dashboard/hire" },
+      { label: "Hire Clippers", href: "/dashboard/hire" },
     ],
   },
   {

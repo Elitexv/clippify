@@ -17,7 +17,7 @@ export default function SignupBrandPanel() {
         today
       </h2>
       <p className="mt-3 max-w-sm text-sm text-black/70 dark:text-slate-400">
-        Hire streamers, connect with clip editors, and grow your content
+        Hire clippers, connect with clip editors, and grow your content
         network worldwide.
       </p>
 

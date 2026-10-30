@@ -14,7 +14,7 @@ const roles = [
     id: "brand",
     label: "Brand",
     icon: Briefcase,
-    text: "Hire streamers and run clipping campaigns",
+    text: "Hire clippers and run clipping campaigns",
   },
   {
     id: "creator",

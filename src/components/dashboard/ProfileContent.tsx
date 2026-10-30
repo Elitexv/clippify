@@ -43,7 +43,7 @@ export default function ProfileContent() {
       links.push(
         { label: "My Campaigns", href: "/dashboard/campaigns", icon: ClipboardList },
         { label: "Post a Campaign", href: "/dashboard/post-job", icon: Briefcase },
-        { label: "Hire Streamers", href: "/dashboard/hire", icon: Users },
+        { label: "Hire Clippers", href: "/dashboard/hire", icon: Users },
       );
     }
     if (user.role === "creator" || user.role === "both") {

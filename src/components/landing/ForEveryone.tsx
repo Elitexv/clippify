@@ -13,7 +13,7 @@ const audiences = [
     iconBg: "bg-amber-100 text-amber-600",
     iconBgDark: "dark:bg-amber-400/10 dark:text-amber-400",
     title: "Brands & Marketers",
-    text: "Access premium clips or hire streamers for your campaigns.",
+    text: "Access premium clips or hire clippers for your campaigns.",
   },
   {
     icon: Briefcase,

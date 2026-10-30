@@ -3,13 +3,13 @@ import { Briefcase, Users } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { btnPrimary } from "@/lib/button-styles";
 
-export default function HireStreamersPage() {
+export default function HireClippersPage() {
   return (
     <RequireAuth area="brand">
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Hire Streamers</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Hire Clippers</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Post a job and get matched with vetted streamers.
+          Post a job and get matched with vetted clippers.
         </p>
         <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-20 text-center dark:border-white/10 dark:bg-[#111]">
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-yellow-100 text-black dark:bg-yellow-400/10 dark:text-yellow-400">
@@ -19,7 +19,7 @@ export default function HireStreamersPage() {
             Hiring happens through campaigns
           </h2>
           <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-            Post a campaign with your channel link and budget — streamers browse open campaigns
+            Post a campaign with your channel link and budget — clippers browse open campaigns
             and submit clip entries directly.
           </p>
           <Link

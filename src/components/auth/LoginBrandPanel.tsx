@@ -9,7 +9,7 @@ const features = [
   },
   {
     icon: Users,
-    title: "Hire talented streamers",
+    title: "Hire talented clippers",
     text: "Post a job and work with the best.",
   },
   {
