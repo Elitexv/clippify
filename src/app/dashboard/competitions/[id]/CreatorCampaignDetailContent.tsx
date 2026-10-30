@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Briefcase, CheckCircle2, Eye, Heart, Link2, Loader2, XCircle } from "lucide-react";
+import { ArrowLeft, Briefcase, CheckCircle2, Clock, Eye, Heart, Link2, Loader2, XCircle } from "lucide-react";
 import EmptyState from "@/components/dashboard/EmptyState";
 import BudgetBar from "@/components/dashboard/BudgetBar";
 import SubmitClipModal from "@/components/dashboard/SubmitClipModal";
@@ -11,6 +11,7 @@ import { btnPrimary } from "@/lib/button-styles";
 import { useAuth } from "@/lib/auth/auth-context";
 import { subscribeToCampaign, type Campaign } from "@/lib/firebase-helpers";
 import { subscribeToClipsForUser, type Clip, type ClipStatus } from "@/lib/clips";
+import { requestToParticipate, subscribeToParticipationForCreator, type ParticipationRequest } from "@/lib/participation";
 
 const statusBadge: Record<ClipStatus, { icon: typeof CheckCircle2; cls: string; label: string }> = {
   pending: {
@@ -35,7 +36,9 @@ export default function CreatorCampaignDetailContent() {
   const { user } = useAuth();
   const [campaign, setCampaign] = useState<Campaign | null | undefined>(undefined);
   const [myClips, setMyClips] = useState<Clip[]>([]);
+  const [myRequests, setMyRequests] = useState<ParticipationRequest[]>([]);
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
     return subscribeToCampaign(id, setCampaign);
@@ -44,6 +47,11 @@ export default function CreatorCampaignDetailContent() {
   useEffect(() => {
     if (!user) return;
     return subscribeToClipsForUser(user.id, setMyClips);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    return subscribeToParticipationForCreator(user.id, setMyRequests);
   }, [user]);
 
   if (campaign === undefined) {
@@ -68,6 +76,23 @@ export default function CreatorCampaignDetailContent() {
   const submission = myClips.find((c) => c.campaignId === campaign.id);
   const badge = submission ? statusBadge[submission.status] : null;
   const BadgeIcon = badge?.icon;
+  const participationRequest = myRequests.find((r) => r.campaignId === campaign.id);
+
+  const handleRequest = async () => {
+    if (!user) return;
+    setRequesting(true);
+    try {
+      await requestToParticipate({
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        creatorId: user.id,
+        creatorName: user.name,
+        brandId: campaign.brandId,
+      });
+    } finally {
+      setRequesting(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -144,9 +169,28 @@ export default function CreatorCampaignDetailContent() {
                 </div>
               )}
             </>
-          ) : (
+          ) : participationRequest?.status === "approved" ? (
             <button onClick={() => setSubmitOpen(true)} className={`mt-5 w-full rounded-lg py-2.5 text-sm ${btnPrimary}`}>
               Submit a Clip
+            </button>
+          ) : participationRequest?.status === "pending" ? (
+            <span className="mt-5 flex w-full items-center justify-center gap-1.5 rounded-lg bg-amber-100 py-2.5 text-center text-sm font-semibold text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400">
+              <Clock className="h-4 w-4" />
+              Request pending review
+            </span>
+          ) : participationRequest?.status === "rejected" ? (
+            <span className="mt-5 flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-50 py-2.5 text-center text-sm font-semibold text-red-600 dark:bg-red-500/10 dark:text-red-400">
+              <XCircle className="h-4 w-4" />
+              Request declined
+            </span>
+          ) : (
+            <button
+              onClick={handleRequest}
+              disabled={requesting}
+              className={`mt-5 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm ${btnPrimary}`}
+            >
+              {requesting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Request to Participate
             </button>
           )}
         </div>

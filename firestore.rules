@@ -63,6 +63,16 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.resource.data.creatorId == request.auth.uid
+        // A clip tied to a campaign requires an approved participation request first
+        // — see src/lib/participation.ts. Looked up by a deterministic id
+        // (campaignId_uid) rather than a query, which get() can't express. This is
+        // the actual enforcement; the UI only hiding "Submit a Clip" until approved
+        // (src/app/dashboard/competitions) is a courtesy, not the real gate — a
+        // tampered client calling this rule directly still has to clear it.
+        && (
+          !('campaignId' in request.resource.data)
+          || get(/databases/$(database)/documents/participationRequests/$(request.resource.data.campaignId + '_' + request.auth.uid)).data.status == 'approved'
+        )
         && (
           request.resource.data.status == 'pending'
           // Only allowed when the platform-wide auto-moderation setting is actually
@@ -114,6 +124,32 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // --- participation requests ---
+    // A creator has to get the brand's approval before "Submit a Clip" becomes
+    // available for that campaign — see /dashboard/competitions (creator) and the
+    // campaign detail pages (brand/admin review). One doc per creator-campaign pair,
+    // created by the creator as 'pending', resolved by the brand/admin.
+    match /participationRequests/{requestId} {
+      allow read: if isSignedIn() && (
+        isAdmin()
+        || resource.data.creatorId == request.auth.uid
+        || get(/databases/$(database)/documents/campaigns/$(resource.data.campaignId)).data.brandId == request.auth.uid
+      );
+
+      allow create: if isSignedIn()
+        && request.resource.data.creatorId == request.auth.uid
+        && request.resource.data.status == 'pending';
+
+      // Only the brand behind the campaign (or an admin) can resolve a request, and
+      // only its status — everything else about the request is fixed at creation.
+      allow update: if onlyChanged(['status']) && (
+        isAdmin()
+        || get(/databases/$(database)/documents/campaigns/$(resource.data.campaignId)).data.brandId == request.auth.uid
+      );
+
+      allow delete: if false;
+    }
+
     // --- notifications ---
     // One doc per notification, recipient in `userId`. Written by whoever's action
     // triggered it (a creator submitting a clip notifies the brand; a brand/admin
@@ -150,6 +186,22 @@ service cloud.firestore {
           request.resource.data.type == 'budget_exhausted'
           && request.resource.data.userId == request.auth.uid
           && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.brandId == request.auth.uid
+        )
+        || (
+          // A creator notifying the brand that they asked to join one of the brand's
+          // own campaigns. Tied to the participation request the requesting user just
+          // created, same shape as clip_submitted above.
+          request.resource.data.type == 'participation_requested'
+          && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.brandId == request.resource.data.userId
+          && get(/databases/$(database)/documents/participationRequests/$(request.resource.data.requestId)).data.creatorId == request.auth.uid
+          && get(/databases/$(database)/documents/participationRequests/$(request.resource.data.requestId)).data.campaignId == request.resource.data.campaignId
+        )
+        || (
+          // The brand notifying a creator that their participation request was
+          // approved/rejected (admin doing the same is covered above).
+          (request.resource.data.type == 'participation_approved' || request.resource.data.type == 'participation_rejected')
+          && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.brandId == request.auth.uid
+          && get(/databases/$(database)/documents/participationRequests/$(request.resource.data.requestId)).data.creatorId == request.resource.data.userId
         )
       );
     }

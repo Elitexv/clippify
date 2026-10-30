@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Briefcase, CheckCircle2, Eye, Heart, Loader2, Search, XCircle } from "lucide-react";
+import { Briefcase, CheckCircle2, Clock, Eye, Heart, Loader2, Search, XCircle } from "lucide-react";
 import RequireAuth from "@/components/dashboard/RequireAuth";
 import { btnPrimary } from "@/lib/button-styles";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -11,6 +11,11 @@ import BudgetBar from "@/components/dashboard/BudgetBar";
 import SubmitClipModal from "@/components/dashboard/SubmitClipModal";
 import { subscribeToActiveCampaigns, type Campaign } from "@/lib/firebase-helpers";
 import { subscribeToClipsForUser, type Clip, type ClipStatus } from "@/lib/clips";
+import {
+  requestToParticipate,
+  subscribeToParticipationForCreator,
+  type ParticipationRequest,
+} from "@/lib/participation";
 
 const inputClass =
   "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white";
@@ -47,10 +52,12 @@ function CreatorCampaignsContent() {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [myClips, setMyClips] = useState<Clip[]>([]);
+  const [myRequests, setMyRequests] = useState<ParticipationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCampaign, setActiveCampaign] = useState<Campaign | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
+  const [requestingFor, setRequestingFor] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToActiveCampaigns((next) => {
@@ -66,8 +73,33 @@ function CreatorCampaignsContent() {
     return () => unsubscribe();
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = subscribeToParticipationForCreator(user.id, setMyRequests);
+    return () => unsubscribe();
+  }, [user]);
+
   const submissionFor = (campaignId: string) =>
     myClips.find((c) => c.campaignId === campaignId);
+
+  const requestFor = (campaignId: string) =>
+    myRequests.find((r) => r.campaignId === campaignId);
+
+  const handleRequest = async (campaign: Campaign) => {
+    if (!user) return;
+    setRequestingFor(campaign.id);
+    try {
+      await requestToParticipate({
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        creatorId: user.id,
+        creatorName: user.name,
+        brandId: campaign.brandId,
+      });
+    } finally {
+      setRequestingFor(null);
+    }
+  };
 
   const visibleCampaigns = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -86,8 +118,8 @@ function CreatorCampaignsContent() {
     <div className="mx-auto max-w-6xl">
       <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Campaigns</h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Browse open clipping campaigns posted by brands and submit a clip to participate — once
-        approved, it also lists on Browse Clips.
+        Browse open clipping campaigns posted by brands. Request to participate, and once the
+        brand approves, submit a clip — approved clips also list on Browse Clips.
       </p>
 
       {campaigns.length > 0 && (
@@ -135,6 +167,7 @@ function CreatorCampaignsContent() {
             const submission = submissionFor(campaign.id);
             const badge = submission ? statusBadge[submission.status] : null;
             const BadgeIcon = badge?.icon;
+            const request = requestFor(campaign.id);
 
             return (
               <div
@@ -206,12 +239,31 @@ function CreatorCampaignsContent() {
                         </div>
                       )}
                     </>
-                  ) : (
+                  ) : request?.status === "approved" ? (
                     <button
                       onClick={() => setActiveCampaign(campaign)}
                       className={`mt-4 w-full rounded-lg py-2.5 text-sm ${btnPrimary}`}
                     >
                       Submit a Clip
+                    </button>
+                  ) : request?.status === "pending" ? (
+                    <span className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-amber-100 py-2.5 text-center text-sm font-semibold text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400">
+                      <Clock className="h-4 w-4" />
+                      Request pending review
+                    </span>
+                  ) : request?.status === "rejected" ? (
+                    <span className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-50 py-2.5 text-center text-sm font-semibold text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                      <XCircle className="h-4 w-4" />
+                      Request declined
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleRequest(campaign)}
+                      disabled={requestingFor === campaign.id}
+                      className={`mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm ${btnPrimary}`}
+                    >
+                      {requestingFor === campaign.id && <Loader2 className="h-4 w-4 animate-spin" />}
+                      Request to Participate
                     </button>
                   )}
                 </div>

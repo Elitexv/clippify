@@ -7,6 +7,7 @@ import { ArrowLeft, ClipboardList, ExternalLink, Loader2, Pencil, RefreshCw } fr
 import EmptyState from "@/components/dashboard/EmptyState";
 import BudgetBar from "@/components/dashboard/BudgetBar";
 import CampaignParticipants from "@/components/dashboard/CampaignParticipants";
+import ParticipationRequestList from "@/components/dashboard/ParticipationRequestList";
 import { btnPrimary, btnSecondary } from "@/lib/button-styles";
 import {
   subscribeToCampaign,
@@ -18,6 +19,11 @@ import {
 } from "@/lib/firebase-helpers";
 import { setClipStatus, subscribeToClipsForCampaign, type Clip } from "@/lib/clips";
 import { verifyFlutterwavePayment } from "@/lib/flutterwave";
+import {
+  setParticipationStatus,
+  subscribeToParticipationForCampaign,
+  type ParticipationRequest,
+} from "@/lib/participation";
 
 const statusOptions: CampaignStatus[] = ["draft", "active", "completed", "cancelled"];
 
@@ -37,8 +43,11 @@ export default function BrandCampaignDetailContent() {
   const { id } = useParams<{ id: string }>();
   const [campaign, setCampaign] = useState<Campaign | null | undefined>(undefined);
   const [clips, setClips] = useState<Clip[]>([]);
+  const [requests, setRequests] = useState<ParticipationRequest[]>([]);
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
   const [clipError, setClipError] = useState("");
+  const [requestBusy, setRequestBusy] = useState<Record<string, boolean>>({});
+  const [requestError, setRequestError] = useState("");
   const [payoutDraft, setPayoutDraft] = useState<string | null>(null);
   const [savingPayout, setSavingPayout] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
@@ -59,6 +68,10 @@ export default function BrandCampaignDetailContent() {
 
   useEffect(() => {
     return subscribeToClipsForCampaign(id, setClips);
+  }, [id]);
+
+  useEffect(() => {
+    return subscribeToParticipationForCampaign(id, setRequests);
   }, [id]);
 
   const startEditing = () => {
@@ -142,6 +155,18 @@ export default function BrandCampaignDetailContent() {
       setClipError(error instanceof Error ? error.message : "Couldn't resolve that clip.");
     } finally {
       setRowBusy((b) => ({ ...b, [clip.id]: false }));
+    }
+  };
+
+  const resolveRequest = async (participationRequest: ParticipationRequest, status: "approved" | "rejected") => {
+    setRequestBusy((b) => ({ ...b, [participationRequest.id]: true }));
+    setRequestError("");
+    try {
+      await setParticipationStatus(participationRequest, status);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : "Couldn't resolve that request.");
+    } finally {
+      setRequestBusy((b) => ({ ...b, [participationRequest.id]: false }));
     }
   };
 
@@ -299,6 +324,39 @@ export default function BrandCampaignDetailContent() {
               </div>
             </div>
           </div>
+
+          {(() => {
+            const pendingRequests = requests.filter((r) => r.status === "pending");
+            return (
+              <div className="mt-6 border-t border-slate-100 pt-4 dark:border-white/10">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {requests.length === 0
+                    ? "Participation requests"
+                    : `${requests.length} participation ${requests.length === 1 ? "request" : "requests"}`}
+                  {pendingRequests.length > 0 && (
+                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-yellow-400/10 dark:text-yellow-400">
+                      {pendingRequests.length} pending
+                    </span>
+                  )}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  A creator can&apos;t submit a clip until you approve their request here.
+                </p>
+                <div className="mt-3">
+                  {requests.length === 0 ? (
+                    <p className="text-sm text-slate-400">No one has asked to join this campaign yet.</p>
+                  ) : (
+                    <ParticipationRequestList
+                      requests={requests}
+                      busy={requestBusy}
+                      error={requestError}
+                      onResolve={resolveRequest}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="mt-6 border-t border-slate-100 pt-4 dark:border-white/10">
             <p className="text-sm font-semibold text-slate-900 dark:text-white">

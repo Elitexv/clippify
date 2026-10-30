@@ -12,7 +12,14 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-export type NotificationType = "clip_submitted" | "clip_approved" | "clip_rejected" | "budget_exhausted";
+export type NotificationType =
+  | "clip_submitted"
+  | "clip_approved"
+  | "clip_rejected"
+  | "budget_exhausted"
+  | "participation_requested"
+  | "participation_approved"
+  | "participation_rejected";
 
 export type AppNotification = {
   id: string;
@@ -23,6 +30,7 @@ export type AppNotification = {
   link: string;
   campaignId?: string;
   clipId?: string;
+  requestId?: string;
   read: boolean;
   createdAt: Timestamp | null;
 };
@@ -35,6 +43,7 @@ export async function createNotification({
   link,
   campaignId,
   clipId,
+  requestId,
 }: Omit<AppNotification, "id" | "read" | "createdAt">) {
   await addDoc(collection(db, "notifications"), {
     userId,
@@ -44,6 +53,7 @@ export async function createNotification({
     link,
     ...(campaignId ? { campaignId } : {}),
     ...(clipId ? { clipId } : {}),
+    ...(requestId ? { requestId } : {}),
     read: false,
     createdAt: serverTimestamp(),
   });
